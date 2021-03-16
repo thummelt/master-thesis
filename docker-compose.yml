@@ -7,6 +7,6 @@ services:
         environment: 
             CONDA_ENV: ma-simulation
         volumes:
-            - ./code/src:/usr/src/app/src
+            - ./code/:/usr/app/
         stdin_open: true
         tty: true
