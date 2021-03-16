@@ -1,0 +1,11 @@
+name: ma-simulation 
+channels:
+  - anaconda
+dependencies:
+  - numpy
+  - pandas
+  - pip
+  - pip:
+    - ortools
+    - jupyter
+    - ipykernel
