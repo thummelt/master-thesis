@@ -3,16 +3,94 @@
 class State:
 
     # Variables
+    t : int
+    B_L : float
+    D : float
+    P_B : float
+    P_S : float
 
     # Classification
-    isTerm : bool = False
+    isTerminal : bool = False
     visited : bool = False
 
     # Value
     v_n : float
     v_n_1 : float
 
-    def __init__(self):
-        v_n, v_n_1 = 0
+    def __init__(self, t:int, b_l:float, d:float, p_b:float, p_s:float, term:bool):
+        self.t = t
+        self.B_L = b_l
+
+        # Exogenous information that has arrived until t => incorporate for decision making
+        self.D = d
+        self.P_B = p_b
+        self.P_S = p_s
+
+        self.isTerminal = term
+
+        # Initialize values to 0 as goal is to maximize
+        self.v_n
+        self.v_n_1 = 0
+
+    def __str__(self) -> str:
+        return "State t=%d[(%s,%s,%s,%s) - %s - (%f, %f)]" % ( self.t, self.B_L, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self.v_n_1)
+
+    def hasConverged(self, eps: float) -> bool:
+        return (self.v_n-self.v_n_1) < eps
+
+    
+    #######################################################################################
+    # Getter and setter                                                                   #
+    #######################################################################################
+
+    def getKey(self) -> str:
+        return "(%d,%s,%s,%s,%s)" % ( self.t, self.B_L, self.D, self.P_B, self.P_S ) 
+
+    def get_t(self) -> int:
+        return self.t
+
+    def get_B_L(self) -> float:
+        return self.B_L
+
+    def get_D(self) -> float:
+        return self.D
+    
+    def get_P_B(self) -> float:
+        return self.P_B
+    
+    def get_P_S(self) -> float:
+        return self.P_S
+
+    def get_isTerminal(self) -> bool:
+        return self.isTerminal
+    
+    def get_V_N(self) -> float:
+        return self.v_n
+
+    def get_V_N_1(self) -> float:
+        return self.v_n_1
+
+    ##
+
+    def set_B_L(self, x : float):
+        self.B_L = x
+
+    def set_D(self, x : float):
+        self.D = x
+    
+    def set_P_B(self, x : float):
+        self.P_B = x
+    
+    def set_P_S(self, x : float):
+        self.P_S = x
+    
+    def set_isTerminal(self, x : bool):
+        self.isTerminal = x
+    
+    def set_V_N(self, x : float):
+        self.v_n_1 = self.v_n_1
+        self.v_n = x
+
+    
 
     
