@@ -1,3 +1,5 @@
 {
-    "python.pythonPath": "C:\\Users\\thummelt\\AppData\\Local\\Continuum\\anaconda3\\python.exe"
+    "python.pythonPath": "C:\\Users\\thummelt\\AppData\\Local\\Continuum\\anaconda3\\python.exe",
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true
 }
