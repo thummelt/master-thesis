@@ -10,4 +10,4 @@ dependencies:
     - jupyter
     - ipykernel
     - seaborn
-    - jupyterthemes
+    - pytest
