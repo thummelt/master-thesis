@@ -17,7 +17,7 @@ T: int = 25/tau
 eta: float = 0.9
 
 # Charging rate in kW/tau*h
-mu: float = 9*tau
+my: float = 9*tau
 
 # Energy consumption
 ny: float = 0.147
