@@ -1,3 +1,5 @@
+from modules import constants as con
+
 ## Represents state object
 
 class State:
@@ -5,6 +7,7 @@ class State:
     # Variables
     t : int
     B_L : float
+    V_TA : int
     D : float
     P_B : float
     P_S : float
@@ -17,26 +20,36 @@ class State:
     v_n : float
     v_n_1 : float
 
-    def __init__(self, t:int, b_l:float, d:float, p_b:float, p_s:float, term:bool):
+    def __init__(self, t:int, v_ta: int, b_l:float, d:float, p_b:float, p_s:float):
         self.t = t
         self.B_L = b_l
+        self.V_TA = v_ta
 
         # Exogenous information that has arrived until t => incorporate for decision making
         self.D = d
         self.P_B = p_b
         self.P_S = p_s
 
-        self.isTerminal = term
+        # Terminal state if at end of horizon and target energy level is met and vehicle is at home
+        self.isTerminal = self.t == con.T & self.B_L == con.beta_T & self.V_TA == 0
 
         # Initialize values to 0 as goal is to maximize
         self.v_n
         self.v_n_1 = 0
 
     def __str__(self) -> str:
-        return "State t=%d[(%s,%s,%s,%s) - %s - (%f, %f)]" % ( self.t, self.B_L, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self.v_n_1)
+        return "State t=%d[(%s,%s, %s,%s,%s) - %s - (%f, %f)]" % ( self.t, self.V_TA, self.B_L, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self.v_n_1)
 
     def hasConverged(self, eps: float) -> bool:
         return (self.v_n-self.v_n_1) < eps
+
+    def getY(self) -> int:
+        """Return helping variable y_t describing whether vehicle is driving (= 1) or not (= 0)
+
+        Returns:
+            int: Driving status in dependence of V_TA
+        """        
+        return 1 if self.V_TA > 0 else 0
 
     
     #######################################################################################
@@ -44,13 +57,16 @@ class State:
     #######################################################################################
 
     def getKey(self) -> str:
-        return "(%d,%s,%s,%s,%s)" % ( self.t, self.B_L, self.D, self.P_B, self.P_S ) 
+        return "(%d,%d,%s,%s,%s,%s)" % ( self.t, self.V_TA, self.B_L, self.D, self.P_B, self.P_S ) 
 
     def get_t(self) -> int:
         return self.t
 
     def get_B_L(self) -> float:
         return self.B_L
+    
+    def get_V_TA(self) -> int:
+        return self.V_TA
 
     def get_D(self) -> float:
         return self.D
@@ -74,6 +90,9 @@ class State:
 
     def set_B_L(self, x : float):
         self.B_L = x
+    
+    def set_V_TA(self, x : int):
+        self.V_TA = x
 
     def set_D(self, x : float):
         self.D = x
