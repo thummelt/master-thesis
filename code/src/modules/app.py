@@ -14,7 +14,7 @@ from typing import List, Dict
 class App:
 
     # Variables
-    states = pd.DataFrame(columns=["key", "t", "B_L", "D", "P_B", "P_S", "terminal", "v_n"])
+    dfStates = pd.DataFrame(columns=["key", "t", "B_L", "V_TA", "D", "P_B", "P_S", "terminal", "v_n"])
 
     states: List[State] = []
     decisions : Dict[State, List[Decision]] = {}
@@ -32,7 +32,10 @@ class App:
 
     def constructStates(self) -> List[State]:
         ## {10..50}*{0..max_trip/speed}*{0..max_trip}*{0..max_preis_b}*{0..max_preis_s}
-        return [State(1, 2, 25, 10, 5, 5), State(1, 0, 25, 10, 5, 5), State(1, 0, 25, 0, 5, 5)]
+        s = [State(1, 2, 25, 10, 5, 5), State(1, 0, 25, 10, 5, 5), State(1, 0, 25, 0, 5, 5)]
+        for st in s:
+            self.dfStates.loc[len(self.dfStates)] = st.getPDRepresentation()
+        return s
     
 
     def constructDecisions(self, s:State) -> List[Decision]:
@@ -59,6 +62,6 @@ class App:
 
 
     def getStateByKey(self, key : str) -> bool:
-        return str in self.states["key"]
+        return self.states["key"].isin(key)
 
 
