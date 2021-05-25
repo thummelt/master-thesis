@@ -5,7 +5,7 @@ from modules import constants as con
 class State:
 
     # Variables
-    t : int
+    t : float
     B_L : float
     V_TA : int
     D : float
@@ -31,10 +31,11 @@ class State:
         self.P_S = p_s
 
         # Terminal state if at end of horizon and target energy level is met and vehicle is at home
-        self.isTerminal = self.t == con.T & self.B_L == con.beta_T & self.V_TA == 0
+        self.isTerminal = (self.B_L == con.beta_T) and (self.V_TA == 0) and (self.t == con.T)
+                          
 
         # Initialize values to 0 as goal is to maximize
-        self.v_n
+        self.v_n = 0
         self.v_n_1 = 0
 
     def __str__(self) -> str:
