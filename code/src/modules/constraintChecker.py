@@ -16,7 +16,7 @@ def checkDecision(s: State, x: Decision) -> bool:
         return False
 
     # G2V and V2G only possible if vehicle is onsite and no trip starts
-    if not( x.get_x_G2V + x.get_x_V2G() <= con.phi*(1-s.getY())*(1-x.get_x_t())):
+    if not( x.get_x_G2V() + x.get_x_V2G() <= con.phi*(1-s.getY())*(1-x.get_x_t())):
         return False
     
     # Starting trip only if vehicle is onsite
@@ -34,4 +34,6 @@ def checkDecision(s: State, x: Decision) -> bool:
     # Target energy must be met if end of time horizon reached
     if (con.T-1 == s.get_t()) & ~(s.B_L + (x.get_x_G2V() - x.get_x_V2G()) == con.beta_T):
         return False
+
+    return True
     
