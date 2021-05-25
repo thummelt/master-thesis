@@ -57,8 +57,11 @@ class State:
     # Getter and setter                                                                   #
     #######################################################################################
 
+    def getPDRepresentation(self) -> list:
+        return [self.getKey(), self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n ]
+
     def getKey(self) -> str:
-        return "(%d,%d,%s,%s,%s,%s)" % ( self.t, self.V_TA, self.B_L, self.D, self.P_B, self.P_S ) 
+        return "(%d,%d,%s,%s,%s,%s)" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S ) 
 
     def get_t(self) -> int:
         return self.t
