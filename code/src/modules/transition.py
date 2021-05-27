@@ -1,7 +1,7 @@
-from modules.state import State
-from modules.decision import Decision
-from modules.app import App
-from modules import constants as con
+from src.modules.state import State
+from src.modules.decision import Decision
+from src.modules.app import App
+from src.modules import constants as con
 
 import pandas as pd
 import math
@@ -33,8 +33,8 @@ class Transition:
         self.performTransition()
 
         # Check if valid destination state is reached - if not set s_d to None
-        if self.checkDestState() == False:
-            self.s_d = None
+        #if self.checkDestState() == False:
+        #    self.s_d = None
 
 
 
@@ -45,16 +45,17 @@ class Transition:
 
         # Battery Load
         b_l = self.s_s.get_B_L() + con.eta*(self.x.get_x_G2V()-self.x.get_x_V2G()) - con.ny*con.gamma*con.tau*self.s_s.getY()
+        print((self.x.get_x_V2G()))
 
         # Time until arrival
-        v_ta = self.s_s.getY()*(self.s_s.get_V_TA()-1) + self.x.get_x_t*math.ceil(self.s_s.get_D()/con.gamma/con.tau)
+        v_ta = self.s_s.getY()*(self.s_s.get_V_TA()-1) + self.x.get_x_t()*math.ceil(self.s_s.get_D()/con.gamma/con.tau)
 
         # Copy exogenous information from exInfo
-        d = self.ex_info.loc[0, "D"].values[0]
-        p_b = self.ex_info.loc[0, "P_B"].values[0]
-        p_s = self.ex_info.loc[0, "P_S"].values[0]
+        d = self.ex_info["Length"]
+        p_b = self.ex_info["Price"]
+        p_s = self.ex_info["Price"] # Todo later distinguish buy and sell
 
-        self.s_d = State(t,v_ta,b_l,d,p_b,p_s)
+        self.s_d = State(t,b_l,v_ta,d,p_b,p_s)
 
     
     def checkDestState(self) -> bool:
@@ -81,3 +82,7 @@ class Transition:
     
     def get_ex_info(self) -> pd.DataFrame:
         return self.ex_info
+
+
+    def __eq__ (self, t) -> bool:
+        return ((self.get_s_d().__eq__(t.get_s_d())) and (self.get_s_s().__eq__(t.get_s_s())) and (self.get_x().__eq__(t.get_x())) and (self.get_ex_info().equals(t.get_ex_info())))

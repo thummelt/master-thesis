@@ -1,4 +1,4 @@
-from modules import constants as con
+from src.modules import constants as con
 
 ## Represents state object
 
@@ -20,7 +20,7 @@ class State:
     v_n : float
     v_n_1 : float
 
-    def __init__(self, t:int, v_ta: int, b_l:float, d:float, p_b:float, p_s:float):
+    def __init__(self, t:int, b_l:float, v_ta: int,  d:float, p_b:float, p_s:float):
         self.t = t
         self.B_L = b_l
         self.V_TA = v_ta
@@ -31,7 +31,7 @@ class State:
         self.P_S = p_s
 
         # Terminal state if at end of horizon and target energy level is met and vehicle is at home
-        self.isTerminal = (self.B_L == con.beta_T) and (self.V_TA == 0) and (self.t == con.T)
+        self.isTerminal = ((self.B_L >= con.beta_T) & (self.V_TA == 0) & (self.t == con.T))
                           
 
         # Initialize values to 0 as goal is to maximize
@@ -39,7 +39,7 @@ class State:
         self.v_n_1 = 0
 
     def __str__(self) -> str:
-        return "State t=%d[(%s,%s, %s,%s,%s) - %s - (%f, %f)]" % ( self.t, self.V_TA, self.B_L, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self.v_n_1)
+        return "State t=%d[(%s,%s, %s,%s,%s) - %s - (%f, %f)]" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self.v_n_1)
 
     def hasConverged(self, eps: float) -> bool:
         return (self.v_n-self.v_n_1) < eps
@@ -58,7 +58,7 @@ class State:
     #######################################################################################
 
     def getPDRepresentation(self) -> list:
-        return [self.getKey(), self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n ]
+        return [self.getKey(), self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self]
 
     def getKey(self) -> str:
         return "(%d,%d,%s,%s,%s,%s)" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S ) 
@@ -113,6 +113,9 @@ class State:
     def set_V_N(self, x : float):
         self.v_n_1 = self.v_n_1
         self.v_n = x
+
+    def __eq__ (self, s) -> bool:
+        return self.getKey() == s.getKey()
 
     
 

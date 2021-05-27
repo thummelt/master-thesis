@@ -1,3 +1,4 @@
+
 ## Represents decision object
 
 class Decision:
@@ -41,4 +42,8 @@ class Decision:
     
     def set_x_t(self, x : int):
         self.x_t = x
+
+
+    def __eq__ (self, d) -> bool:
+        return (self.get_x_G2V() == d.get_x_G2V()) and (self.get_x_V2G() == d.get_x_V2G()) and (self.get_x_t() == d.get_x_t())
        
