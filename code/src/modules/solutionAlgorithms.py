@@ -53,7 +53,7 @@ class SolutionAlgorithms:
         #    states.parallelStream().forEach(s -> s.nextIterationPrep());
         #}       
         
-        logger.log(Level.INFO, String.format("Finished in %d iterations", iterationCounter));
-        return iterationCounter;
-    }
+        #logger.log(Level.INFO, String.format("Finished in %d iterations", iterationCounter));
+        #return iterationCounter;
+    #}
 
