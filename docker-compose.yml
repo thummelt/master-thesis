@@ -6,6 +6,7 @@ services:
             - 8888:8888
         environment: 
             CONDA_ENV: ma-simulation
+            PYTHONPATH: /usr/app/
         volumes:
             - ./code/:/usr/app/
             - ./data/ :/usr/app/data/
