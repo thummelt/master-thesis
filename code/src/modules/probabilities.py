@@ -15,6 +15,7 @@ class Probabilities:
     d_len : pd.DataFrame
     d_price: pd.DataFrame
 
+
     def __init__(self):
         self.d_trpstrt = pd.read_pickle("/usr/app/data/probabilities/trpstrt.pkl")
         self.d_len = pd.read_pickle("/usr/app/data/probabilities/trplen.pkl")
@@ -23,6 +24,7 @@ class Probabilities:
         # TODO later per real data
         ran = np.random.random(1)
         self.d_price = pd.DataFrame({"t": 300, "10": ran, "20": 1-ran})  # for price = 10, otherwise price = 20
+        # TODO erstellung prob matrix
 
 
     def getProbabilities(self, t: int) -> pd.DataFrame:

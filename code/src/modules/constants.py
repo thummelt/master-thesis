@@ -2,11 +2,12 @@
 # General                                                                             #
 #######################################################################################
 
-# Time intervals in minutes
+# Time intervals in h
 tau: int = 0.25
 
 # Time horizon
-T: float = 25/tau
+T: float = 10# 24/tau
+
 
 
 #######################################################################################
@@ -53,3 +54,15 @@ epsilon: float = 100
 
 # Stepsize energy amounts (battery, charging, discharging)
 step_en: float = 0.5
+
+# Stepsize price
+step_pr: float = 0.1
+
+# Max trip length
+trip_max: float = 40
+
+# Max price buy
+price_b_max: float = 0.5
+
+# Max price sell
+price_s_max: float = 0.5
