@@ -66,3 +66,6 @@ price_b_max: float = 0.5
 
 # Max price sell
 price_s_max: float = 0.5
+
+# Influence of expectation of future values
+expec : float = 1.0

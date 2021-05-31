@@ -17,7 +17,8 @@ class Decision:
     def __str__(self) -> str:
         return "Decision [(%f,%f,%d)]" % ( self.x_G2V, self.x_V2G, self.x_t)
 
-    
+    def getKey(self) -> str:
+        return "(%f,%f,%f)" % ( self.x_G2V, self.x_V2G, self.x_t) 
     
     #######################################################################################
     # Getter and setter                                                                   #

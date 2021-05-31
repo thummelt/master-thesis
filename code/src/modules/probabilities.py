@@ -1,3 +1,5 @@
+from src.modules import constants as con
+
 import pandas as pd
 import numpy as np
 
@@ -22,9 +24,9 @@ class Probabilities:
         #self.d_price = pd.read_pickle("/usr/app/data/probabilities/price.pkl")
 
         # TODO later per real data
-        ran = np.random.random(1)
-        self.d_price = pd.DataFrame({"t": 300, "10": ran, "20": 1-ran})  # for price = 10, otherwise price = 20
-        # TODO erstellung prob matrix
+        ran = [np.random.random(size=None) for x in np.arange(0, 1441/con.tau)]
+        self.d_price = pd.DataFrame({"t": np.arange(0, 1441/con.tau), "10": ran, "20": [1-r for r in ran]})  # for price = 10, otherwise price = 20
+        
 
 
     def getProbabilities(self, t: int) -> pd.DataFrame:
@@ -39,7 +41,7 @@ class Probabilities:
 
         # Trip Length
         p_l_y = pd.melt(self.d_len.loc[self.d_len["t"] == t,self.d_len.columns[1:]], id_vars = [], var_name = self.uncertainties[1], value_name = self.probabilities[1]).copy()
-        p_l_n = pd.DataFrame({self.uncertainties[1]: ["-1"], self.probabilities[1]: [1]}, index=[0])
+        p_l_n = pd.DataFrame({self.uncertainties[1]: ["0"], self.probabilities[1]: [1]}, index=[0])
 
         # Electricity price
         p_p = pd.melt(self.d_price.loc[self.d_price["t"] == t,self.d_price.columns[1:]], id_vars = [], var_name = self.uncertainties[2], value_name = self.probabilities[2]).copy()
@@ -48,10 +50,10 @@ class Probabilities:
         dfs_y = [p_t_y, p_l_y, p_p]
         dfs_n = [p_t_n, p_l_n, p_p]
 
-        return self._getProbDF(dfs_y)[self.uncertainties+["p"]].append(self._getProbDF(dfs_n)[self.uncertainties+["p"]], ignore_index=True)
+        return self._getProbDF(dfs_y, t)[self.uncertainties+["p"]+["t"]].append(self._getProbDF(dfs_n, t)[self.uncertainties+["p"]+["t"]], ignore_index=True)
 
 
-    def _getProbDF(self, dfs: list) -> pd.DataFrame:
+    def _getProbDF(self, dfs: list, t: int) -> pd.DataFrame:
         res = pd.DataFrame({"key": 0}, index=[0])
 
         for df in dfs:
@@ -63,7 +65,7 @@ class Probabilities:
         for p in self.probabilities:
             res["p"] = res["p"]*res[p]
         
-
+        res["t"] = t
         return res.copy()
 
 

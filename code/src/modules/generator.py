@@ -73,3 +73,8 @@ def constructDecisions(s:State) -> List[Decision]:
     ls = list(filter(lambda d: checkDecision(s,d), [Decision(a.x_G2V, a.x_V2G, a.x_trip) for a in df.itertuples()]))
 
     return ls
+
+def generateTransitions(s: (State, List[Decision])) -> pd.DataFrame:
+    
+    # TODO [state, decision, transition] => transition has prob and destination state assigned
+    return pd.DataFrame()

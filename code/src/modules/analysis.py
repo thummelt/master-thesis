@@ -15,7 +15,7 @@ class Analysis:
     def __init__(self):
         pass
 
-    def extractPolicy(self, t: pd.Dataframe ):
+    def extractPolicy(self, t: pd.DataFrame ):
         # Extract for each state transition data (decision, ex_info)
         for s in t["s"]:
             pass
