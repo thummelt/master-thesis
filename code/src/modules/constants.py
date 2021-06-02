@@ -6,7 +6,7 @@
 tau: int = 0.25
 
 # Time horizon
-T: float = 10# 24/tau
+T: float = 2# 24/tau
 
 
 
@@ -15,7 +15,7 @@ T: float = 10# 24/tau
 #######################################################################################
 
 # Charging/Discharging efficiency
-eta: float = 0.9
+eta: float = 1#0.9
 
 # Charging rate in kW/tau*h
 my: float = 9*tau
@@ -24,7 +24,7 @@ my: float = 9*tau
 ny: float = 0.147
 
 # Battery capacity in kWh
-beta: float = 50
+beta: float = 5#50
 
 # Max battery level
 beta_max: float = 1*beta
@@ -34,6 +34,9 @@ beta_min: float = 0.2*beta
 
 # Energy level at end of time horizon
 beta_T: float = 0.8*beta
+
+# Initla energy level
+beta_0: float = 0.8*beta
 
 # Avg driving speed in km/h
 gamma: float = 40
@@ -53,19 +56,19 @@ epsilon: float = 100
 #######################################################################################
 
 # Stepsize energy amounts (battery, charging, discharging)
-step_en: float = 0.5
+step_en: float = 0.2#0.5
 
 # Stepsize price
 step_pr: float = 0.1
 
 # Max trip length
-trip_max: float = 40
+trip_max: float = 4#40
 
 # Max price buy
-price_b_max: float = 0.5
+price_b_max: float = 0.1
 
 # Max price sell
-price_s_max: float = 0.5
+price_s_max: float = 0.1
 
 # Influence of expectation of future values
 expec : float = 1.0

@@ -9,6 +9,7 @@ from typing import List, Dict
 
 import pandas as pd
 import numpy as np
+import logging
 
 # Represents VI algorithm
 
@@ -24,57 +25,50 @@ class SolutionAlgorithms:
 
 
 
-    def performStandardVI(self, df: pd.DataFrame) -> bool:
+    def performStandardVI(self, df: pd.DataFrame, states: Dict[str,State]) -> bool:
         
-        # States 
-        states = df["s"].drop_duplicates.copy()
-
         # Calculate contribution of state-decision pairs
-        cont = df[["s","d"]].drop_duplicates().copy()
-        cont["cont"] = cont["s"].apply(lambda s: s.get_P_S())*con.eta*cont["d"].apply(lambda d: d.get_x_v2g())
-        - cont["s"].apply(lambda s: s.get_P_B())*con.eta * cont["d"].apply(lambda d: d.get_x_g2v())
-        - con.epsilon * cont["s"].apply(lambda s: s.get_D()) * cont["d"].apply(lambda d: d.get_x_t())
+        cont = df[["s_key", "d_key", "s_obj","d_obj"]].drop_duplicates().copy()
 
-        cont["s_key"] = cont["s"].apply(lambda x: x.getKey())
+        cont["cont"] = cont["s_obj"].apply(lambda s: s.get_P_S())*con.eta*cont["d_obj"].apply(lambda d: d.get_x_v2g())
+        - cont["s"].apply(lambda s: s.get_P_B())*con.eta * cont["d_obj"].apply(lambda d: d.get_x_g2v())
+        - con.epsilon * cont["s_obj"].apply(lambda s: s.get_D()) * cont["d_obj"].apply(lambda d: d.get_x_t())
 
-
-
+        
         iterationCounter: int = 0
 
         # Loop until epsilon-convergence has been achieved
-        while not all([s.hasConverged(0.1) for s in states]):
+        while not all([s.hasConverged(0.1) for s in states.values()]):
                 iterationCounter += 1
 
-                # For each state-decision-ex_info perform transition
-                for row in df.iterrows():
-                        t = Transition(row["s"], row["d"], row["p"], row[["Trip", "Length", "Price"]])
-                        s_d = t.get_s_d()
-
-                        # Check if valid state reached by transition
-                        if not s_d.getKey() in df["s_key"]:
-                                print("%s has been reached by %s but is not valid" %(s_d.__str__(), t.__str__() ))
-                                break
-
-                        # Calculate total contribution
-                        row["ex_cont"] = row["p"]*s_d.get_V_N()
+                # For each state-decision-ex_info derive expected future state contribution
+                df["ex_cont"] = df["p"]*states[df["s_d_key"]].get_V_N()
                 
                 # Aggregate values per stat-decision pair 
-                grp_sum = df[["s","d","ex_cont"]].groupby(["s","d"])["ex_cont"].sum().reset_index()
+                grp_sum = df[["s_key","d_key","ex_cont"]].groupby(["s_key","d_key"])["ex_cont"].sum().reset_index()
 
                 # Merge with contribution dataframe
-                grp_sum = pd.merge(grp_sum, cont, on=["s","d"])
+                grp_sum = pd.merge(grp_sum, cont, on=["s_key","d_key"])
 
                 # Add contribution by decision to contribution of future states
                 grp_sum["cont"] = grp_sum["cont"] + con.expec*grp_sum["ex_con"]
 
                 # Select max aggregate per state (decision with best contribution)
-                max_con = grp_sum.groupby("s").max()
+                max_con = grp_sum.groupby("s_key").max()
 
                 # TODO later store best decision
                 # st_best_dec =grp_sum.groupby("s").idxmax()
 
                 # Update state values as sum of total_contributions
                 for s, v in max_con.iteritems():
-                        s.set_V_N(v)
+                        states[s].set_V_N(v)
 
 
+        def performApproxVI(self) -> bool:
+                pass
+
+        def performMyopicOpti(self) -> bool:
+                pass
+
+        def performRandomDeicison(self) -> bool:
+                pass

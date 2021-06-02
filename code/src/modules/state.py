@@ -5,7 +5,7 @@ from src.modules import constants as con
 class State:
 
     # Variables
-    t : float
+    t : int
     B_L : float
     V_TA : int
     D : float
@@ -39,7 +39,7 @@ class State:
         self.v_n_1 = 0
 
     def __str__(self) -> str:
-        return "State t=%d[(%s,%s, %s,%s,%s) - %s - (%f, %f)]" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self.v_n_1)
+        return "State t=%d[(%s,%s,%s,%s,%s) - %s - (%s, %s)]" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self.v_n_1)
 
     def hasConverged(self, eps: float) -> bool:
         return (self.v_n-self.v_n_1) < eps
@@ -61,7 +61,7 @@ class State:
         return [self.getKey(), self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self]
 
     def getKey(self) -> str:
-        return "(%d,%d,%s,%s,%s,%s)" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S ) 
+        return "(%s,%s,%s,%s,%s,%s)" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S ) 
 
     def get_t(self) -> int:
         return self.t

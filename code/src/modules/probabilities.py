@@ -9,7 +9,7 @@ import numpy as np
 class Probabilities:
 
     # Const
-    uncertainties = ["Trip", "Length", "Price"]
+    uncertainties = ["trpstrt", "trpln", "prc"]
     probabilities = ["p_t(t)", "p_l(t)", "p_p(t)"]
 
     # Variables to store measures
@@ -25,7 +25,7 @@ class Probabilities:
 
         # TODO later per real data
         ran = [np.random.random(size=None) for x in np.arange(0, 1441/con.tau)]
-        self.d_price = pd.DataFrame({"t": np.arange(0, 1441/con.tau), "10": ran, "20": [1-r for r in ran]})  # for price = 10, otherwise price = 20
+        self.d_price = pd.DataFrame({"t": np.arange(0, 1441/con.tau), "0.1": ran, "0.0": [1-r for r in ran]})
         
 
 
