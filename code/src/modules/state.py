@@ -36,13 +36,13 @@ class State:
 
         # Initialize values to 0 as goal is to maximize
         self.v_n = 0
-        self.v_n_1 = 0
+        self.v_n_1 = -1
 
     def __str__(self) -> str:
         return "State t=%d[(%s,%s,%s,%s,%s) - %s - (%s, %s)]" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self.v_n_1)
 
     def hasConverged(self, eps: float) -> bool:
-        return (self.v_n-self.v_n_1) < eps
+        return abs(self.v_n-self.v_n_1) < eps
 
     def getY(self) -> int:
         """Return helping variable y_t describing whether vehicle is driving (= 1) or not (= 0)
@@ -111,7 +111,7 @@ class State:
         self.isTerminal = x
     
     def set_V_N(self, x : float):
-        self.v_n_1 = self.v_n_1
+        self.v_n_1 = self.v_n
         self.v_n = x
 
     def __eq__ (self, s) -> bool:

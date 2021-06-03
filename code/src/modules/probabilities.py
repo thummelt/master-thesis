@@ -41,7 +41,7 @@ class Probabilities:
 
         # Trip Length
         p_l_y = pd.melt(self.d_len.loc[self.d_len["t"] == t,self.d_len.columns[1:]], id_vars = [], var_name = self.uncertainties[1], value_name = self.probabilities[1]).copy()
-        p_l_n = pd.DataFrame({self.uncertainties[1]: ["0"], self.probabilities[1]: [1]}, index=[0])
+        p_l_n = pd.DataFrame({self.uncertainties[1]: [0], self.probabilities[1]: [1]}, index=[0])
 
         # Electricity price
         p_p = pd.melt(self.d_price.loc[self.d_price["t"] == t,self.d_price.columns[1:]], id_vars = [], var_name = self.uncertainties[2], value_name = self.probabilities[2]).copy()

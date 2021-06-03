@@ -1,20 +1,20 @@
 from src.modules.state import State
 from src.modules.decision import Decision
 from src.modules.transition import Transition
+from src.modules.probabilities import Probabilities
 from src.modules import constants as con
 from src.modules.constraintChecker import checkDecision, checkState
 
 import pandas as pd
 import numpy as np
-import multiprocessing
 from tqdm import tqdm
 from typing import List
 import math
+from joblib import Parallel, delayed
+import multiprocessing as mp
 
 import logging
 
-
-num_cores = multiprocessing.cpu_count()
 
 
 def constructStates() -> pd.DataFrame:
@@ -23,7 +23,7 @@ def constructStates() -> pd.DataFrame:
     df0 = pd.DataFrame({"key" : 0, "t": list(np.arange(0,con.T+1, 1))})
     df1 = pd.DataFrame({"key" : 0, "B_L": [round(x,2) for x in np.arange(con.beta_min,con.beta_max+con.step_en, con.step_en)]})
     df2 = pd.DataFrame({"key" : 0, "V_TA": list(np.arange(0,math.ceil(con.trip_max/con.gamma/con.tau)+1, 1))})
-    df3 = pd.DataFrame({"key" : 0, "D": list(np.arange(0,con.trip_max+1, 1))})
+    df3 = pd.DataFrame({"key" : 0, "D": [0]+list(np.arange(0.5,con.trip_max+1, 1))}) # Might be adjusted to match prob distribution
     df4 = pd.DataFrame({"key" : 0, "P_B": [round(x,2) for x in np.arange(0.0,con.price_b_max+con.step_pr, con.step_pr)]})
     df5 = pd.DataFrame({"key" : 0, "P_S": [round(x,2) for x in np.arange(0.0,con.price_s_max+con.step_pr, con.step_pr)]})
 
@@ -35,13 +35,10 @@ def constructStates() -> pd.DataFrame:
             .pipe(pd.merge, right=df5, on=["key"])
     )
 
-
     df.drop_duplicates(ignore_index=True, inplace=True)
-
 
     # Filter out invalid states
     df.drop(df.index[[not checkState(s.t, s.B_L, s.V_TA, s.D) for s in df.itertuples()]], inplace=True)
-
 
     # Create state objects
     df["s_obj"] = [State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S) for s in tqdm(df.itertuples())]
@@ -71,14 +68,34 @@ def constructDecisions(s:State) -> pd.DataFrame:
     # Create decision objects
     df["d_obj"] = [Decision(a.x_G2V, a.x_V2G, a.x_trip) for a in df.itertuples()]
 
+    #if s.getKey() == '(1,1.0,0,0.0,0.0,0.0)':
+    #    print(df.shape)
+
     # Filter out invalid decisions
     df.drop(df.index[[not checkDecision(s, d.d_obj) for d in df.itertuples()]], inplace=True)
+
+    #if s.getKey() == '(1,1.0,0,0.0,0.0,0.0)':
+    #    print(df.shape)
 
     df["d_key"] = df["d_obj"].apply(lambda x: x.getKey())
 
     df["s_key"] = s.getKey()
 
     return df[["d_key", "s_key", "d_obj"]].copy()
+
+
+def constructExogInfo(df: pd.DataFrame, p: Probabilities) -> pd.DataFrame:
+    # Construct ex_info data frame for all t
+    df_p = pd.DataFrame()
+
+    processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(p.getProbabilities)(t*con.tau*60) for t in np.arange(0, con.T+1, 1))
+    df_p = pd.concat(processed_list)
+
+    # Need to match time index
+    df_p["t"] = df_p["t"]/(con.tau*60)
+    df_p.reset_index(inplace=True,drop=True)
+            
+    return pd.merge(df,df_p, on=["t"])
 
 
 def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
@@ -101,8 +118,10 @@ def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
     #        df.drop(index=i, inplace=True)
     
     # Filter out invalid => short form
-    df = df[(df["s_d_key"].isin(states)) | (df["s_obj"].apply(lambda s: s.get_isTerminal()))]
+    df = df[df["s_d_key"].isin(states)]
+
     
     logging.debug("DataFrame has %d rows after transition pruning." % len(df))
+
 
     return df.copy()

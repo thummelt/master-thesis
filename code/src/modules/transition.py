@@ -39,13 +39,13 @@ class Transition:
         t = s_s.get_t()+1
 
         # Battery Load
-        b_l = round(s_s.get_B_L() + con.eta*(x.get_x_G2V()-x.get_x_V2G()) - con.ny*con.gamma*con.tau*s_s.getY(),2)
+        b_l = round(s_s.get_B_L() + con.eta*(x.get_x_G2V()-x.get_x_V2G()) - con.ny*con.gamma*con.tau*s_s.getY(),1)
 
         # Time until arrival
         v_ta = s_s.getY()*(s_s.get_V_TA()-1) + x.get_x_t()*math.ceil(s_s.get_D()/con.gamma/con.tau)
 
         # Copy exogenous information from exInfo
-        d = trpln
+        d = float(trpln)
         p_b = prc
         p_s = prc # TODO later distinguish buy and sell
 

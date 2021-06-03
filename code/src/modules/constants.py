@@ -20,8 +20,8 @@ eta: float = 1#0.9
 # Charging rate in kW/tau*h
 my: float = 9*tau
 
-# Energy consumption
-ny: float = 0.147
+# Energy consumption in kWh/km (actually 0.147)
+ny: float = 0.2
 
 # Battery capacity in kWh
 beta: float = 5#50
@@ -62,7 +62,7 @@ step_en: float = 0.2#0.5
 step_pr: float = 0.1
 
 # Max trip length
-trip_max: float = 4#40
+trip_max: float = 21#40
 
 # Max price buy
 price_b_max: float = 0.1

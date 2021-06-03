@@ -15,6 +15,8 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 import multiprocessing as mp
 
+from fnmatch import fnmatch
+
 
 
 ## Sets algorithm up. Called by Jupyter NB
@@ -47,47 +49,60 @@ class App:
 
         # States
         self.df_states = g.constructStates()
-        self.df_states.reset_index(inplace=True,drop=True)
+        self.df_states.set_index("s_key", inplace=True, drop=True)
+
         logging.info("Finished creation of %d states" % len(self.df_states))
 
-        # For each state all decisions        
-        processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i) for i in tqdm(self.df_states["s_obj"]))
-        self.df_decisions = pd.concat(processed_list)
+        # For each state (which are not terminal) construct all decisions        
+        processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
+        self.df_decisions = pd.concat(processed_list) # TODO hier fehlen states
         self.df_decisions.reset_index(inplace=True,drop=True)
+
+        
+
+        #print(self.df_decisions.loc[(self.df_decisions["s_key"].apply(lambda k: fnmatch(k, "(1,1.?,0,0.0,0.0,0.0)")))])
         
         logging.info("Finished creation of %d decisions" % len(self.df_decisions))
 
 
-        # Prune data frame 
-        ## States without decisions, but not terminal
-
     
     def valueIteration(self) -> bool:
-        # Prepare data    
         
         # Construct data frame for performance ["s_key", "s_obj", "d_key", "d_obj", "t",  "trpln", "prc", "p", "tr_obj"]
         df = pd.merge(self.df_states, self.df_decisions, on=["s_key"])
-
         df["t"] = df["s_obj"].apply(lambda s: s.get_t())
 
-        # Construct ex_info data frame for all t
-        df_p = pd.DataFrame()
+        #print(df.head())
 
-        processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(self.p.getProbabilities)(t*con.tau*60) for t in np.arange(0, con.T+1, 1))
-        df_p = pd.concat(processed_list)
+        #print(df.loc[(df["s_key"].apply(lambda k: fnmatch(k, "(1,1.?,0,0.0,0.0,0.0)")))])
 
-        # Need to match time index
-        df_p["t"] = df_p["t"]/(con.tau*60)
-        df_p.reset_index(inplace=True,drop=True)
-              
-        df = pd.merge(df,df_p, on=["t"]).copy()
+        logging.info("Finished joining states and decisions. Shape of df is %s"  % str(df.shape))
+        
+        # Construct exog information
+        df = g.constructExogInfo(df, self.p)
+        #print(df.loc[df["s_key"]=='(1,1.0,0,0.0,0.0,0.0)'])
+        
+        logging.info("Finished creation of exogenous information. Shape of df is %s"  % str(df.shape))
 
         # Construct transitions
-        df = g.constructTransitions(df, self.df_states["s_key"].tolist())
+        df = g.constructTransitions(df, self.df_states.index.values.tolist())
+        df.reset_index(inplace=True, drop=True)
+        #print(df.loc[df["s_key"]=='(1,1.0,0,0.0,0.0,0.0)'])
+
+        logging.info("Finished creation of transitions. Shape of df is %s" % str(df.shape))
+
+
+        # Add all "dead-end" states that have no decision with contribution of zero
+        # print(self.df_states[~self.df_states.index.to_series().isin(df["s_key"]).all(1)])
+
+
+        ### TODO
+        df.to_pickle("/usr/app/data/tmp/viInputDf.pkl") 
+        self.df_states.to_pickle("/usr/app/data/tmp/viDFStates.pkl") 
+
         
         # Call VI with state-decision-transition tuples
-        return df # TODO
-        # return self.sol.performStandardVI(df, self.df_states["s_obj"].tolist())
+        #return self.sol.performStandardVI(df, self.df_states["s_obj"].to_dict())
 
 
     def approxValueIteration(self) -> bool:
