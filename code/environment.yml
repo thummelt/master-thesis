@@ -12,3 +12,5 @@ dependencies:
     - seaborn
     - pytest
     - joblib
+    - openpyxl
+    - tqdm

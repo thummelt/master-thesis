@@ -10,6 +10,7 @@ WORKDIR /usr/app/
 
 # Create environment
 ENV CONDA_ENV ma-simulation
+RUN conda config --set ssl_verify no
 RUN conda env create -n ${CONDA_ENV} -f /usr/dev/environment.yml
 RUN echo "source activate ${CONDA_ENV}" > ~/.bashrc
 ENV PATH /opt/conda/envs/${CONDA_ENV}/bin:$PATH

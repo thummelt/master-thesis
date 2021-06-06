@@ -10,5 +10,6 @@ services:
         volumes:
             - ./code/:/usr/app/
             - ./data/ :/usr/app/data/
+            - ./output/ :/usr/app/output/
         stdin_open: true
         tty: true

@@ -12,6 +12,7 @@ import numpy as np
 import logging
 import datetime
 import operator
+import openpyxl
 
 # Represents VI algorithm
 
@@ -33,7 +34,6 @@ class SolutionAlgorithms:
         
         # Calculate contribution of state-decision pairs
         cont = df[["s_key", "d_key", "s_obj","d_obj"]].drop_duplicates(subset=["s_key", "d_key"]).copy()
-        #print(df.loc[df.s_key == '(1,1.0,0,0.0,0.0,0.0)'])
 
         cont["cont"] = cont["s_obj"].apply(lambda s: s.get_P_S())*con.eta*cont["d_obj"].apply(lambda d: d.get_x_V2G()) \
         - cont["s_obj"].apply(lambda s: s.get_P_B())*con.eta * cont["d_obj"].apply(lambda d: d.get_x_G2V()) \
@@ -44,7 +44,7 @@ class SolutionAlgorithms:
         
         iterationCounter: int = 0
 
-        best_dec = pd.DataFrame(columns=["s_key", "d_key"])
+        best_dec = pd.DataFrame(columns=["s_key", "d_key", "value"])
 
         # Loop until epsilon-convergence has been achieved
         while not all([states[s].hasConverged(0.1) for s in df["s_key"]]):
@@ -52,47 +52,39 @@ class SolutionAlgorithms:
                 iterationCounter += 1
 
                 #logging.info("Current iteration %d" % iterationCounter)
-                print("Current iteration %d" % iterationCounter)
-                print(sum([states[s].hasConverged(0.1) for s in df["s_key"].unique()]))
-                print("Max diff %s" % str(max({s: abs(states[s].get_V_N()-states[s].get_V_N_1()) for s in df["s_key"].unique()}.items(), key=operator.itemgetter(1))))
+                logging.debug("Current iteration %d" % iterationCounter)
+                logging.debug(sum([states[s].hasConverged(0.1) for s in df["s_key"].unique()]))
+                logging.debug("Max diff %s" % str(max({s: abs(states[s].get_V_N()-states[s].get_V_N_1()) for s in df["s_key"].unique()}.items(), key=operator.itemgetter(1))))
 
 
                 # For each state-decision-ex_info derive expected future state contribution
                 df["ex_cont"] = df["p"]*df["s_d_key"].apply(lambda s: states.get(s).get_V_N())
-                #print(df.loc[df.s_key == '(1,1.0,0,0.0,0.0,0.0)'])
                 
                 # Aggregate values per stat-decision pair 
                 grp_sum = df[["s_key","d_key","ex_cont"]].groupby(["s_key","d_key"])["ex_cont"].sum().reset_index()
-                #print(grp_sum.loc[grp_sum.s_key == '(1,1.0,0,0.0,0.0,0.0)'])
 
                 # Merge with contribution dataframe
                 grp_sum = pd.merge(grp_sum, cont[["s_key","d_key", "cont"]], on=["s_key","d_key"])
-                #print(grp_sum.loc[grp_sum.s_key == '(1,1.0,0,0.0,0.0,0.0)'])
 
                 # Add contribution by decision to contribution of future states
                 grp_sum["tot_cont"] = grp_sum["cont"] + con.expec*grp_sum["ex_cont"]
-                #print(grp_sum.loc[grp_sum.s_key == '(1,1.0,0,0.0,0.0,0.0)'])
 
                 # Select max aggregate per state (decision with best contribution)
                 max_con = grp_sum[["s_key", "tot_cont"]].groupby(["s_key"])["tot_cont"].max()
-                #print(max_con['(1,1.0,0,0.0,0.0,0.0)'])
 
                 # Store best decision
                 best_dec = grp_sum.loc[grp_sum[["s_key", "tot_cont"]].groupby(["s_key"])["tot_cont"].idxmax(),["s_key", "d_key"]]
 
                 # Update state values as sum of total_contributions
                 for s, v in max_con.items():
-                        # if s == '(1,1.0,0,0.0,0.0,0.0)':
-                        #         print(states[s].get_V_N())
-                        #         print(states[s].get_V_N_1())
-                        #         states[s].set_V_N(v)
-                        #         print(states[s].get_V_N())
-                        #         print(states[s].get_V_N_1())
-                        # else:
-                        #         states[s].set_V_N(v)
                         states[s].set_V_N(v)
         
-        print(best_dec)
+        best_dec["value"] = best_dec["s_key"].apply(lambda s: states[s].get_V_N())
+        best_dec = best_dec.append(pd.DataFrame({ \
+                                                        "s_key": list(map(lambda s: s.getKey(), filter(lambda s: s.get_isTerminal(), states.values()))), \
+                                                        "value": list(map(lambda s: s.get_V_N(), filter(lambda s: s.get_isTerminal(), states.values())))}, \
+                        ), ignore_index=True)
+        best_dec.to_excel("/usr/app/output/vi_best_decisions.xlsx")
 
 
         def performApproxVI(self) -> bool:
