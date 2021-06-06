@@ -22,7 +22,7 @@ def checkDecision(s: State, x: Decision) -> bool:
         code += [1]
     
     # Maximum V2G amount limited by residual energy and charging rate
-    if not (con.eta*x.get_x_V2G() <= min(s.get_B_L()-con.beta_min, con.my)):
+    if not (x.get_x_V2G() <= min(s.get_B_L()-con.beta_min, con.my)):
          code += [2]
 
     # Either G2V or V2G amounts transmitted
@@ -46,7 +46,7 @@ def checkDecision(s: State, x: Decision) -> bool:
         code += [7]
 
     # Target energy must be met if end of time horizon reached
-    if (con.T-1 == s.get_t()) & ~(s.B_L + (x.get_x_G2V() - x.get_x_V2G() - con.ny*s.get_D()*x.get_x_t()) >= con.beta_T):
+    if (con.T-1 == s.get_t()) & ~(s.B_L + (con.eta*x.get_x_G2V() - x.get_x_V2G() - con.ny*s.get_D()*x.get_x_t()) >= con.beta_T):
         code += [8]
 
     # Vehicle cannot start trips if wont be home until end of horizon
