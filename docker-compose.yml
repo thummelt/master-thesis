@@ -8,8 +8,6 @@ services:
             CONDA_ENV: ma-simulation
             PYTHONPATH: /usr/app/
         volumes:
-            - ./code/:/usr/app/
-            - ./data/ :/usr/app/data/
-            - ./output/ :/usr/app/output/
+            - ./code/:/usr/app
         stdin_open: true
         tty: true
