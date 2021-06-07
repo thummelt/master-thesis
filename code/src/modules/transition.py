@@ -39,10 +39,10 @@ class Transition:
         t = s_s.get_t()+1
 
         # Battery Load
-        b_l = round(s_s.get_B_L() + con.eta*x.get_x_G2V() - x.get_x_V2G() - con.ny*con.gamma*con.tau*s_s.getY(),1)
+        b_l = round(s_s.get_B_L() + con.eta*x.get_x_G2V() - x.get_x_V2G() - con.ny*min(s_s.get_V_TA(),con.gamma*con.tau)*s_s.getY(),1)
 
         # Kilometre until arrival
-        v_ta = min(0,s_s.getY()*(s_s.get_V_TA()-con.gamma*con.tau) + x.get_x_t()*s_s.get_D())
+        v_ta = min(0,s_s.getY()*(s_s.get_V_TA()-con.gamma*con.tau)) + x.get_x_t()*s_s.get_D()
 
         # Copy exogenous information from exInfo
         d = float(trpln)

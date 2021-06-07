@@ -6,7 +6,10 @@
 tau: int = 0.25
 
 # Time horizon
-T: float = 2# 24/tau
+T: float = 5# 24/tau
+
+# Convergence epsilon
+convergence: float = 0.1
 
 
 
@@ -24,7 +27,7 @@ my: float = 9*tau
 ny: float = 0.2
 
 # Battery capacity in kWh
-beta: float = 5#50
+beta: float = 50
 
 # Max battery level
 beta_max: float = 1*beta
@@ -56,7 +59,7 @@ epsilon: float = 100
 #######################################################################################
 
 # Stepsize energy amounts (battery, charging, discharging)
-step_en: float = 0.2#0.5
+step_en: float = 0.2
 
 # Stepsize price
 step_pr: float = 0.1

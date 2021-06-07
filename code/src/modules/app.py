@@ -54,15 +54,15 @@ class App:
         logging.info("Finished creation of %d states" % len(self.df_states))
 
         # For each state (which are not terminal) construct all decisions        
-        processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
-        self.df_decisions = pd.concat(processed_list) # TODO hier fehlen states
+        processed_list = Parallel(n_jobs=mp.cpu_count()*4)(delayed(g.constructDecisions)(i) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
+        self.df_decisions = pd.concat(processed_list)
         self.df_decisions.reset_index(inplace=True,drop=True)
 
-        
+        logging.info("Finished creation of %d decisions" % len(self.df_decisions))
 
         #print(self.df_decisions.loc[(self.df_decisions["s_key"].apply(lambda k: fnmatch(k, "(1,1.?,0,0.0,0.0,0.0)")))])
         
-        logging.info("Finished creation of %d decisions" % len(self.df_decisions))
+
 
 
     
@@ -73,7 +73,6 @@ class App:
         df["t"] = df["s_obj"].apply(lambda s: s.get_t())
 
         #print(df.head())
-
         #print(df.loc[(df["s_key"].apply(lambda k: fnmatch(k, "(1,1.?,0,0.0,0.0,0.0)")))])
 
         logging.info("Finished joining states and decisions. Shape of df is %s"  % str(df.shape))
@@ -92,17 +91,13 @@ class App:
         logging.info("Finished creation of transitions. Shape of df is %s" % str(df.shape))
 
 
-        # Add all "dead-end" states that have no decision with contribution of zero
-        # print(self.df_states[~self.df_states.index.to_series().isin(df["s_key"]).all(1)])
-
-
         ### TODO
         df.to_pickle("/usr/app/data/tmp/viInputDf.pkl") 
         self.df_states.to_pickle("/usr/app/data/tmp/viDFStates.pkl") 
 
         
         # Call VI with state-decision-transition tuples
-        #return self.sol.performStandardVI(df, self.df_states["s_obj"].to_dict())
+        return self.sol.performStandardVI(df, self.df_states["s_obj"].to_dict())
 
 
     def approxValueIteration(self) -> bool:

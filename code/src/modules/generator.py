@@ -22,7 +22,7 @@ def constructStates() -> pd.DataFrame:
 
     df0 = pd.DataFrame({"key" : 0, "t": list(np.arange(0,con.T+1, 1))})
     df1 = pd.DataFrame({"key" : 0, "B_L": [round(x,2) for x in np.arange(con.beta_min,con.beta_max+con.step_en, con.step_en)]})
-    df2 = pd.DataFrame({"key" : 0, "V_TA": list(np.arange(0,math.ceil(con.trip_max/con.gamma/con.tau)+1, 1))})
+    df2 = pd.DataFrame({"key" : 0, "V_TA": [0]+list(np.arange(0.5,con.trip_max+1, 1))})
     df3 = pd.DataFrame({"key" : 0, "D": [0]+list(np.arange(0.5,con.trip_max+1, 1))}) # Might be adjusted to match prob distribution
     df4 = pd.DataFrame({"key" : 0, "P_B": [round(x,2) for x in np.arange(0.0,con.price_b_max+con.step_pr, con.step_pr)]})
     df5 = pd.DataFrame({"key" : 0, "P_S": [round(x,2) for x in np.arange(0.0,con.price_s_max+con.step_pr, con.step_pr)]})
@@ -67,6 +67,9 @@ def constructDecisions(s:State) -> pd.DataFrame:
 
     # Create decision objects
     df["d_obj"] = [Decision(a.x_G2V, a.x_V2G, a.x_trip) for a in df.itertuples()]
+    df["d_key"] = df["d_obj"].apply(lambda x: x.getKey())
+
+    # TODO bis hierhin fast statisch. lediglich abfrage von getY. aber das als filter aufnehmen
 
     #if s.getKey() == '(1,1.0,0,0.0,0.0,0.0)':
     #    print(df.shape)
@@ -76,8 +79,6 @@ def constructDecisions(s:State) -> pd.DataFrame:
 
     #if s.getKey() == '(1,1.0,0,0.0,0.0,0.0)':
     #    print(df.shape)
-
-    df["d_key"] = df["d_obj"].apply(lambda x: x.getKey())
 
     df["s_key"] = s.getKey()
 
