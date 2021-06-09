@@ -56,8 +56,8 @@ def checkDecision(s: State, x: Decision) -> bool:
     if not(s.t + x.get_x_t()*math.ceil(s.get_D()/con.gamma/con.tau) <= con.T):
         code += [9]
 
-    if s.getKey() == '(0,5.0,0.0,9.5,0.1,0.1)':
-        print(x.getKey() + str(list(filter(lambda c: c > 0, code))))
+    # if s.getKey() == '(0,5.0,0.0,9.5,0.1,0.1)':
+    #     print(x.getKey() + str(list(filter(lambda c: c > 0, code))))
 
     return code == [0]
     
