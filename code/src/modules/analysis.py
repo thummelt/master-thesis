@@ -5,30 +5,57 @@ from src.modules.transition import Transition
 from src.modules import constants as con
 
 import pandas as pd
-from typing import Dict, Tuple
+
+
+from datetime import datetime
 
 ## Stores measures and provide evaluation functionality
 
 class Analysis:
 
     # Variables to store measures
-    runtime : Dict[str, float]
-    splitRuntime: Dict[str, Tuple]
-    stateSpace : Dict[str, float]
-    decisionSpace : Dict[str, float]
-    totalSpace : Dict[str, float]
+    runtime = pd.DataFrame(columns=["time"])
+    splitRuntime = pd.DataFrame(columns=["t_state", "d_state", "tr_state", "vi"])
+    stateSpace = pd.DataFrame(columns=["amount"])
+    decisionSpace = pd.DataFrame(columns=["amount"])
+    totalSpace = pd.DataFrame(columns=["amount"])
+
+    allVar = []
 
     def __init__(self):
-        pass
+        self.allVar = [("rt", self.runtime), ("splitrt", self.splitRuntime), ("sspace", self.stateSpace), ("dspec", self.decisionSpace), ("tspace", self.totalSpace)]
 
-    def extractPolicy(self, t: pd.DataFrame ):
-        # Extract for each state transition data (decision, ex_info)
-        for s in t["s"]:
-            pass
+    def addMeasure(self, key, value, m):
+        if m == "rt":
+            self.runtime.loc[key] = [value]
+            return
+        if m == "splitrt":
+            self.splitRuntime.loc[key] = value
+            return
+        if m == "sspace":
+            self.stateSpace.loc[key] = [value]
+            return
+        if m == "dspace":
+            self.decisionSpace.loc[key] = [value]
+            return
+        if m == "tspace":
+            self.totalSpace.loc[key] = [value]
+            return
 
         
-        # Plot time - state of charge
+    def putout(self):
+        # Spool out dataframe pkl
+        for var in self.allVar:
+            var[1].to_pickle("/usr/app/data/tmp/%s.pkl" % var[0])
 
-        # Plot time - (charging/discharging & price_b/price_s)
+        # Spool out excel 
+        with pd.ExcelWriter('/usr/app/output/analysis%s.xlsx' % datetime.now().strftime("%Y%m%d_%H%M%S")) as writer:  
+            for var in self.allVar:
+                var[1].to_excel(writer, sheet_name=var[0])
+            
 
-        # Plot time - (start trip & trip length)
+
+    
+
+
+

@@ -65,7 +65,7 @@ step_en: float = 0.1
 step_pr: float = 0.1
 
 # Max trip length
-trip_max: float = 21#40
+trip_max: float = 11#40
 
 # Max price buy
 price_b_max: float = 0.1
