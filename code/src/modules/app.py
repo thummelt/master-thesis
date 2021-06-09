@@ -53,8 +53,9 @@ class App:
 
         logging.info("Finished creation of %d states" % len(self.df_states))
 
-        # For each state (which are not terminal) construct all decisions        
-        processed_list = Parallel(n_jobs=mp.cpu_count()*4)(delayed(g.constructDecisions)(i) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
+        # For each state (which are not terminal) construct all decisions  
+        df_dec = g.decisionSpace()
+        processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
         self.df_decisions = pd.concat(processed_list)
         self.df_decisions.reset_index(inplace=True,drop=True)
 
@@ -62,9 +63,6 @@ class App:
 
         #print(self.df_decisions.loc[(self.df_decisions["s_key"].apply(lambda k: fnmatch(k, "(1,1.?,0,0.0,0.0,0.0)")))])
         
-
-
-
     
     def valueIteration(self) -> bool:
         

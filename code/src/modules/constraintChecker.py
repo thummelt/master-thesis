@@ -45,15 +45,18 @@ def checkDecision(s: State, x: Decision) -> bool:
     if not( con.ny*s.get_D() <=  s.get_B_L()-con.beta_min + con.phi*(1-x.get_x_t())):
         code += [7]
 
-    # Target energy must be met if end of time horizon reached
-    if (con.T-1 == s.get_t()) & ~(s.B_L + (con.eta*x.get_x_G2V() - x.get_x_V2G() - con.ny*s.get_D()*x.get_x_t()) >= con.beta_T):
+    # Target energy must be reachable by end of time horizon
+    # Current decision considered and for future periods where vehicle is at home max charge rate to fill up battery
+    if not(s.B_L + ( con.eta*x.get_x_G2V() + con.my*(max(0,con.T-s.get_t()-(1-x.get_x_t())*1-x.get_x_t()*math.ceil(s.get_D()/con.gamma/con.tau))) - x.get_x_V2G() - con.ny*s.get_D()*x.get_x_t()) >= con.beta_T):
         code += [8]
 
     # Vehicle cannot start trips if wont be home until end of horizon
+    # V_TA is set for t+1 and vehicles drives first time at t
+    # => 19.5km decided to start in t=0 -> V_TA = 9.5 in t=1 -> V_TA = 0 in t=2 
     if not(s.t + x.get_x_t()*math.ceil(s.get_D()/con.gamma/con.tau) <= con.T):
         code += [9]
 
-    if s.getKey() == '(0,4.0,0,15.5,0.0,0.0)':
+    if s.getKey() == '(0,5.0,0.0,9.5,0.1,0.1)':
         print(x.getKey() + str(list(filter(lambda c: c > 0, code))))
 
     return code == [0]

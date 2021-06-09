@@ -5,12 +5,18 @@ from src.modules.transition import Transition
 from src.modules import constants as con
 
 import pandas as pd
+from typing import Dict, Tuple
 
 ## Stores measures and provide evaluation functionality
 
 class Analysis:
 
     # Variables to store measures
+    runtime : Dict[str, float]
+    splitRuntime: Dict[str, Tuple]
+    stateSpace : Dict[str, float]
+    decisionSpace : Dict[str, float]
+    totalSpace : Dict[str, float]
 
     def __init__(self):
         pass

@@ -21,11 +21,11 @@ def constructStates() -> pd.DataFrame:
     ## {\beta_min..\beta_max}*{0..max_trip/speed}*{0..max_trip}*{0..max_preis_b}*{0..max_preis_s}
 
     df0 = pd.DataFrame({"key" : 0, "t": list(np.arange(0,con.T+1, 1))})
-    df1 = pd.DataFrame({"key" : 0, "B_L": [round(x,2) for x in np.arange(con.beta_min,con.beta_max+con.step_en, con.step_en)]})
+    df1 = pd.DataFrame({"key" : 0, "B_L": [round(x,1) for x in np.arange(con.beta_min,con.beta_max+con.step_en, con.step_en)]})
     df2 = pd.DataFrame({"key" : 0, "V_TA": [0]+list(np.arange(0.5,con.trip_max+1, 1))})
     df3 = pd.DataFrame({"key" : 0, "D": [0]+list(np.arange(0.5,con.trip_max+1, 1))}) # Might be adjusted to match prob distribution
-    df4 = pd.DataFrame({"key" : 0, "P_B": [round(x,2) for x in np.arange(0.0,con.price_b_max+con.step_pr, con.step_pr)]})
-    df5 = pd.DataFrame({"key" : 0, "P_S": [round(x,2) for x in np.arange(0.0,con.price_s_max+con.step_pr, con.step_pr)]})
+    df4 = pd.DataFrame({"key" : 0, "P_B": [round(x,1) for x in np.arange(0.0,con.price_b_max+con.step_pr, con.step_pr)]})
+    df5 = pd.DataFrame({"key" : 0, "P_S": [round(x,1) for x in np.arange(0.0,con.price_s_max+con.step_pr, con.step_pr)]})
 
     df = (df0
             .pipe(pd.merge, right=df1, on=["key"])
@@ -48,12 +48,12 @@ def constructStates() -> pd.DataFrame:
     return df[["s_key", "s_obj"]].copy()
 
 
-def constructDecisions(s:State) -> pd.DataFrame:
+def decisionSpace() -> pd.DataFrame:
     ## {0..my}*{0..my}*{0,1} -> {0}*{0..my}*{0,1} and {0..my}*{0}*{0,1}
 
-    df1 = pd.DataFrame({"x_G2V": [round(x,2) for x in np.arange(0.0,con.my+0.1, con.step_en)]})
-    df2 = pd.DataFrame({"x_V2G": [round(x,2) for x in np.arange(0.0,con.my+0.1, con.step_en)]})
-    df3 = pd.DataFrame({"x_trip": [0,1]}) if s.getY() == 0 else pd.DataFrame({"x_trip": [0]})
+    df1 = pd.DataFrame({"x_G2V": [round(x,1) for x in np.arange(0.0,con.my+0.1, con.step_en)]})
+    df2 = pd.DataFrame({"x_V2G": [round(x,1) for x in np.arange(0.0,con.my+0.1, con.step_en)]})
+    df3 = pd.DataFrame({"x_trip": [0,1]})
 
     df1["x_V2G"] = 0
     df2["x_G2V"] = 0
@@ -66,19 +66,18 @@ def constructDecisions(s:State) -> pd.DataFrame:
     df.drop_duplicates(ignore_index=True, inplace=True)
 
     # Create decision objects
-    df["d_obj"] = [Decision(a.x_G2V, a.x_V2G, a.x_trip) for a in df.itertuples()]
+    df["d_obj"] = [Decision(a.x_G2V, a.x_V2G, a.x_trip) for a in df.itertuples()] 
     df["d_key"] = df["d_obj"].apply(lambda x: x.getKey())
 
-    # TODO bis hierhin fast statisch. lediglich abfrage von getY. aber das als filter aufnehmen
+    return df
 
-    #if s.getKey() == '(1,1.0,0,0.0,0.0,0.0)':
-    #    print(df.shape)
+def constructDecisions(s:State, df_c: pd.DataFrame) -> pd.DataFrame:
+
+    # Filter on y_t
+    df = df_c[df_c["x_trip"].apply(lambda x_t: False if (s.getY() == 1) & (x_t == 1) else True)].copy()
 
     # Filter out invalid decisions
     df.drop(df.index[[not checkDecision(s, d.d_obj) for d in df.itertuples()]], inplace=True)
-
-    #if s.getKey() == '(1,1.0,0,0.0,0.0,0.0)':
-    #    print(df.shape)
 
     df["s_key"] = s.getKey()
 
