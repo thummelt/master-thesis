@@ -3,7 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-data/*.csv
+code/data/input/*.csv
+code/data/tmp/*.pkl
 
 # C extensions
 *.so
@@ -129,3 +130,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
