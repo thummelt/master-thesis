@@ -5,6 +5,7 @@ __pycache__/
 
 code/data/input/*.csv
 code/data/tmp/*.pkl
+code/data/output/*
 
 # C extensions
 *.so
