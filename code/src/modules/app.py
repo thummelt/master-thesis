@@ -29,7 +29,6 @@ class App:
     # Variables
     sol: SolutionAlgorithms
     p: Probabilities
-    an : Analysis
 
     starttime : float
     key : str
@@ -42,7 +41,7 @@ class App:
     df_decisions = pd.DataFrame(columns=["d_key", "s_key", "d_obj"])
 
 
-    def __init__(self, T, trip_max):
+    def __init__(self, T, trip_max, an: Analysis):
 
         logging.basicConfig(filename="logs" + '/' + datetime.datetime.now().strftime('%Y%m%d_%H%M') + '_app.log',
                         filemode='w+', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
@@ -54,8 +53,6 @@ class App:
         # Probabilities
         self.p = Probabilities()
 
-        # Analysis
-        self.an = Analysis()
         self.key = "[%d-%d]" % (T if T != None else con.T, trip_max if trip_max != None else con.trip_max)
         
         # Override time and trpln parameters if given
@@ -65,6 +62,8 @@ class App:
         if trip_max != None:
             con.trip_max = trip_max
 
+        self.splittime = []
+
         # Starttime
         self.starttime = time.time()
 
@@ -72,7 +71,7 @@ class App:
         self.df_states = g.constructStates()
         self.df_states.set_index("s_key", inplace=True, drop=True)
         self.splittime += [time.time()-self.starttime]
-        self.an.addMeasure(self.key, len(self.df_states.index), "sspace")
+        an.addMeasure(self.key, len(self.df_states.index), "sspace")
 
         logging.info("Finished creation of %d states" % len(self.df_states))
 
@@ -81,19 +80,18 @@ class App:
         processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
         self.df_decisions = pd.concat(processed_list)
         self.splittime += [time.time()-self.starttime]
-        self.an.addMeasure(self.key, len(self.df_decisions.index), "dspace")
+        an.addMeasure(self.key, len(self.df_decisions.index), "dspace")
         
         logging.info("Finished creation of %d decisions" % len(self.df_decisions))
 
-        self.valueIteration()
+        self.valueIteration(an)
         
         self.splittime += [time.time()-self.starttime]
-        self.an.addMeasure(self.key, self.splittime, "splitrt")
-        self.an.addMeasure(self.key, time.time()-self.starttime, "rt")
-        self.an.putout()
+        an.addMeasure(self.key, self.splittime, "splitrt")
+        an.addMeasure(self.key, time.time()-self.starttime, "rt")
         
     
-    def valueIteration(self) -> bool:
+    def valueIteration(self, an: Analysis) -> bool:
         
         # Construct data frame for performance ["s_key", "s_obj", "d_key", "d_obj", "t",  "trpln", "prc", "p", "tr_obj"]
         df = pd.merge(self.df_states, self.df_decisions, on=["s_key"])
@@ -110,7 +108,7 @@ class App:
         df = g.constructTransitions(df, self.df_states.index.values.tolist())
         df.reset_index(inplace=True, drop=True)
         self.splittime += [time.time()-self.starttime]
-        self.an.addMeasure(self.key, len(df.index), "tspace")
+        an.addMeasure(self.key, len(df.index), "tspace")
 
         logging.info("Finished creation of transitions. Shape of df is %s" % str(df.shape))
 

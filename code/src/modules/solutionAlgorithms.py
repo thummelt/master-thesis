@@ -84,11 +84,18 @@ class SolutionAlgorithms:
             "value": list(map(lambda s: s.get_V_N(), filter(lambda s: s.get_isTerminal(), states.values())))},
         ), ignore_index=True)
 
-        best_dec.to_excel("/usr/app/output/vi_best_decisions.xlsx")
+        best_dec.to_excel("/usr/app/output/xlsx/vi_best_decisions.xlsx")
 
 
     def performApproxVI(self) -> bool:
         pass
 
     def performTrivialPolicy(self) -> bool:
+        """ 
+        - [FRE] - 3 scenarios
+                - Price taker ⇒ sell at any price when connected
+                - Arbitrage oriented ⇒ sell only if high enough to cover buying price, degradation cost and discharging efficiency
+                - Optimal pric ⇒ sell only if higher than defined price (calculated with perfect foresight)
+                - Price prediction über average (moving, weighted) etc
+        """
         pass
