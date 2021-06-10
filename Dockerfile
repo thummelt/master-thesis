@@ -8,6 +8,18 @@ COPY ./code/environment.yml /usr/dev/
 RUN mkdir /usr/app/
 WORKDIR /usr/app/
 
+# Install fonts
+COPY ./TIMES.TTF  /usr/share/fonts/truetype/
+
+# refresh system font cache
+#RUN fc-cache -f -v
+
+# refresh matplotlib font cache
+RUN rm -fr ~/.cache/matplotlib
+
+# Install tex
+#RUN apt-get install dvipng texlive-latex-extra texlive-fonts-recommended cm-super
+
 # Create environment
 ENV CONDA_ENV ma-simulation
 RUN conda config --set ssl_verify no

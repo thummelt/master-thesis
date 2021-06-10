@@ -5,7 +5,7 @@ __pycache__/
 
 code/data/input/*.csv
 code/data/tmp/*.pkl
-code/data/output/*
+code/output/*
 
 # C extensions
 *.so
@@ -131,4 +131,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-

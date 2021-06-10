@@ -4,9 +4,9 @@ channels:
 dependencies:
   - numpy
   - pandas
+  - matplotlib
   - pip
   - pip:
-    - ortools
     - jupyter
     - ipykernel
     - seaborn
@@ -14,3 +14,4 @@ dependencies:
     - joblib
     - openpyxl
     - tqdm
+    - SciencePlots
