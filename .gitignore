@@ -3,9 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-code/data/input/*.csv
-code/data/tmp/*.pkl
-code/output/*
+code/data/input/
+code/data/tmp/
+code/output/
 
 # C extensions
 *.so
