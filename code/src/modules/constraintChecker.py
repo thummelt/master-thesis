@@ -4,13 +4,13 @@ from src.modules import constants as con
 
 import math
 
-def checkState(t: int, b_l: float, v_ta: int, d: float) -> bool:
+def checkState(t: int, b_l: float, v_ta: float, d: float) -> bool:
     # Check termination nodes - vehicle B_L must be equal to beta_t - no demand for trips at t=T - vehicle must be at home
-    if (t == con.T) & ( ~(b_l >= con.beta_T) | ~(d == 0.0) | ~(v_ta == 0)):
+    if (t == con.T) & ( ~(b_l >= con.beta_T) | ~(d == 0.0) | ~(v_ta == 0.0)):
         return False
 
     # Check starting nodes - vehicles must have initial battery level - must be at home
-    if (t == 0) & ( ~(b_l >= con.beta_0) | ~(v_ta == 0)):
+    if (t == 0) & ( ~(b_l >= con.beta_0) | ~(v_ta == 0.0)):
         return False
     
     return True

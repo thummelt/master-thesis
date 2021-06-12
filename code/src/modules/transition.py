@@ -9,6 +9,24 @@ import math
 
 ## Represents transition object
 
+def performTransition(s_s: State, x: Decision, p: float, trpln: float, prc_b: float, prc_s: float) -> State:
+    
+    # t
+    t = s_s.get_t()+1
+
+    # Battery Load
+    b_l = round(s_s.get_B_L() + con.eta*x.get_x_G2V() - x.get_x_V2G() - con.ny*x.get_x_t()*min(s_s.get_D(), con.gamma*con.tau) - con.ny*min(s_s.get_V_TA(),con.gamma*con.tau)*s_s.getY(),1)
+
+    # Kilometre until arrival
+    v_ta = max(0.0,s_s.getY()*(s_s.get_V_TA()-con.gamma*con.tau) + x.get_x_t()*(s_s.get_D()-con.gamma*con.tau))
+
+    # Copy exogenous information from exInfo
+    d = float(trpln)
+    p_b = prc_b
+    p_s = prc_s
+
+    return State(t,b_l,v_ta,d,p_b,p_s)
+
 class Transition:
 
     # Variables
@@ -18,22 +36,24 @@ class Transition:
     x : Decision
     # Information that is known after making decision => integrated in destination state
     trpln: float
-    prc: float
+    prc_b: float
+    prc_s: float
 
 
-    def __init__(self, s_s: State, x: Decision, p: float, trpln: float, prc: float):
+    def __init__(self, s_s: State, x: Decision, p: float, trpln: float, prc_b: float, prc_s: float):
         self.s_s = s_s
         self.x = x
         self.p = p
         self.trpln = trpln
-        self.prc = prc
+        self.prc_b = prc_b
+        self.prc_s = prc_s
 
         # Calculate transition to to destination state
-        self.s_d = self.performTransition(self.s_s,  self.x, self.p, self.trpln, self.prc)
+        self.s_d = self.performTransition(self.s_s,  self.x, self.p, self.trpln, self.prc_b, self.prc_s)
 
  
 
-    def performTransition(self, s_s: State, x: Decision, p: float, trpln: float, prc: float) -> State:
+    def performTransition(self, s_s: State, x: Decision, p: float, trpln: float, prc_b: float, prc_s: float) -> State:
         
         # t
         t = s_s.get_t()+1
@@ -46,8 +66,8 @@ class Transition:
 
         # Copy exogenous information from exInfo
         d = float(trpln)
-        p_b = prc
-        p_s = prc # TODO later distinguish buy and sell
+        p_b = prc_b
+        p_s = prc_s
 
         return State(t,b_l,v_ta,d,p_b,p_s)
 
@@ -55,10 +75,10 @@ class Transition:
 
 
     def __str__(self) -> str:
-        return "Transition [(%s) -> (%s) & (p=%f | %s, %s) => (%s)]" % ( self.s_s.__str__(), self.x.__str__(), self.p, self.trpln, self.prc, self.s_d.__str__())
+        return "Transition [(%s) -> (%s) & (p=%f | %s, %s, %s) => (%s)]" % ( self.s_s.__str__(), self.x.__str__(), self.p, self.trpln, self.prc_b, self.prc_s, self.s_d.__str__())
 
     def getKey(self) -> str:
-        return "(%s,%s,%f,%f,%f)" % ( self.s_s.getKey(), self.x.getKey(), self.p, self.trpln, self.prc) 
+        return "(%s,%s,%f,%f,%f,%f)" % ( self.s_s.getKey(), self.x.getKey(), self.p, self.trpln, self.prc_b, self.prc_s) 
 
 
     #######################################################################################
@@ -78,9 +98,12 @@ class Transition:
     def get_trpln(self) -> float:
         return self.trpln
 
-    def get_prc(self) -> float:
-        return self.prc
+    def get_prc_b(self) -> float:
+        return self.prc_b
+
+    def get_prc_s(self) -> float:
+        return self.prc_s
 
 
     def __eq__ (self, t) -> bool:
-        return ((self.get_s_d().__eq__(t.get_s_d())) and (self.get_s_s().__eq__(t.get_s_s())) and (self.get_x().__eq__(t.get_x())) and (self.trpln == t.trpln) and (self.prc == t.prc))
+        return ((self.get_s_d().__eq__(t.get_s_d())) and (self.get_s_s().__eq__(t.get_s_s())) and (self.get_x().__eq__(t.get_x())) and (self.trpln == t.trpln) and (self.prc_b == t.prc_b)  and (self.prc_s == t.prc_s))

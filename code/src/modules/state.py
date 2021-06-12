@@ -7,7 +7,7 @@ class State:
     # Variables
     t : int
     B_L : float
-    V_TA : int
+    V_TA : float
     D : float
     P_B : float
     P_S : float
@@ -20,7 +20,7 @@ class State:
     v_n : float
     v_n_1 : float
 
-    def __init__(self, t:int, b_l:float, v_ta: int,  d:float, p_b:float, p_s:float):
+    def __init__(self, t:int, b_l:float, v_ta: float,  d:float, p_b:float, p_s:float):
         self.t = t
         self.B_L = b_l
         self.V_TA = v_ta
@@ -33,7 +33,6 @@ class State:
         # Terminal state if at end of horizon and target energy level is met and vehicle is at home
         self.isTerminal = ((self.B_L >= con.beta_T) & (self.V_TA == 0) & (self.t == con.T))
                           
-
         # Initialize values to 0 as goal is to maximize
         self.v_n = 0
         self.v_n_1 = -1
@@ -61,7 +60,7 @@ class State:
         return [self.getKey(), self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self]
 
     def getKey(self) -> str:
-        return "(%s,%s,%s,%s,%s,%s)" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S ) 
+        return "%s,%s,%s,%s,%s,%s" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S ) 
 
     def get_t(self) -> int:
         return self.t
@@ -69,7 +68,7 @@ class State:
     def get_B_L(self) -> float:
         return self.B_L
     
-    def get_V_TA(self) -> int:
+    def get_V_TA(self) -> float:
         return self.V_TA
 
     def get_D(self) -> float:
@@ -95,7 +94,7 @@ class State:
     def set_B_L(self, x : float):
         self.B_L = x
     
-    def set_V_TA(self, x : int):
+    def set_V_TA(self, x : float):
         self.V_TA = x
 
     def set_D(self, x : float):

@@ -9,24 +9,23 @@ import numpy as np
 class Probabilities:
 
     # Const
-    uncertainties = ["trpstrt", "trpln", "prc"]
-    probabilities = ["p_t(t)", "p_l(t)", "p_p(t)"]
+    uncertainties = ["trpstrt", "trpln", "prc_b", "prc_s"]
+    probabilities = ["p_t(t)", "p_l(t)", "p_p_b(t)", "p_p_s(t)"]
 
     # Variables to store measures
     d_trpstrt : pd.DataFrame
     d_len : pd.DataFrame
-    d_price: pd.DataFrame
+    d_price_b: pd.DataFrame
+    d_price_s: pd.DataFrame
 
 
     def __init__(self):
         self.d_trpstrt = pd.read_pickle("/usr/app/data/probabilities/trpstrt.pkl")
         self.d_len = pd.read_pickle("/usr/app/data/probabilities/trplen.pkl")
-        #self.d_price = pd.read_pickle("/usr/app/data/probabilities/price.pkl")
+        self.d_price_b = pd.read_pickle("/usr/app/data/probabilities/d_prc_b.pkl")
+        self.d_price_s = pd.read_pickle("/usr/app/data/probabilities/d_prc_s.pkl")
 
-        # TODO later per real data
-        ran = [np.random.random(size=None) for x in np.arange(0, 1441/con.tau)]
-        self.d_price = pd.DataFrame({"t": np.arange(0, 1441/con.tau), "0.1": ran, "0.0": [1-r for r in ran]})
-        
+       
 
 
     def getProbabilities(self, t: int) -> pd.DataFrame:
@@ -43,12 +42,16 @@ class Probabilities:
         p_l_y = pd.melt(self.d_len.loc[self.d_len["t"] == t,self.d_len.columns[1:]], id_vars = [], var_name = self.uncertainties[1], value_name = self.probabilities[1]).copy()
         p_l_n = pd.DataFrame({self.uncertainties[1]: [0], self.probabilities[1]: [1]}, index=[0])
 
-        # Electricity price
-        p_p = pd.melt(self.d_price.loc[self.d_price["t"] == t,self.d_price.columns[1:]], id_vars = [], var_name = self.uncertainties[2], value_name = self.probabilities[2]).copy()
+        # Electricity price (given to valid within t. therefore for transition from t to t+1 return prices from t+1 )
+        p_p_b = self.d_price_b.loc[self.d_price_b["t"] == t+int(con.tau*60), ["prc", "p","t"]].copy()
+        p_p_b.rename(columns={"p": self.probabilities[2], "prc": self.uncertainties[2]}, inplace=True)
+
+        p_p_s = self.d_price_s.loc[self.d_price_s["t"] == t+int(con.tau*60), ["prc", "p","t"]].copy()
+        p_p_s.rename(columns={"p": self.probabilities[3], "prc": self.uncertainties[3]}, inplace=True)
 
         # Construct possibilities
-        dfs_y = [p_t_y, p_l_y, p_p]
-        dfs_n = [p_t_n, p_l_n, p_p]
+        dfs_y = [p_t_y, p_l_y, p_p_b, p_p_s] 
+        dfs_n = [p_t_n, p_l_n, p_p_b, p_p_s] 
 
         return self._getProbDF(dfs_y, t)[self.uncertainties+["p"]+["t"]].append(self._getProbDF(dfs_n, t)[self.uncertainties+["p"]+["t"]], ignore_index=True)
 
