@@ -7,7 +7,7 @@ from src.modules.analysis import Analysis
 from src.modules import constants as con
 
 import pandas as pd
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from itertools import product, chain
 import numpy as np
 import logging
@@ -34,6 +34,7 @@ class App:
     starttime : float
     key : str
     splittime = []
+    algo : str
 
     ## States as dataframe to speed up lookup
     df_states = pd.DataFrame(columns=["s_key", "s_obj"])
@@ -58,7 +59,7 @@ class App:
     def putout(self):
         self.an.putout()
          
-    def runVI(self, T = None, trip_max = None):
+    def run(self, T = None, trip_max = None, algo: int = 0, params: Tuple = None):
 
         self.key = "[%d-%d]" % (T if T != None else con.T, trip_max if trip_max != None else con.trip_max)
         
@@ -93,10 +94,24 @@ class App:
         
         logging.info("Finished creation of %d decisions" % len(self.df_decisions))
 
-        self.valueIteration()
+        if algo == 0:
+            self.valueIteration()
+            self.algo = "Value Iteration"
+        elif algo == 1:
+            self.myopicOptimization()
+            self.algo = "Myopic Optimization"
+        elif algo == 2:
+            self.approxValueIteration(params)
+            self.algo = "Approximate Value Iteration"
+        elif algo == 3:
+            self.approxDynamicProgramming()
+            self.algo = "Approxmiate Dynamic Programming"
+        else:
+            logging.error("No solution algorithm could be associated")
         
         self.splittime += [time.time()-self.starttime]
-        self.an.addMeasure(self.key, self.splittime, "splitrt")
+        if algo == 0:
+            self.an.addMeasure(self.key, self.splittime, "splitrt")
         self.an.addMeasure(self.key, time.time()-self.starttime, "rt")
         
     
@@ -123,21 +138,37 @@ class App:
         logging.info("Finished creation of transitions. Shape of df is %s" % str(df.shape))
 
         #df.to_pickle("/usr/app/data/tmp/viInputDf.pkl") 
-        self.df_states.to_pickle("/usr/app/data/tmp/viDFStates.pkl") 
+        #self.df_states.to_pickle("/usr/app/data/tmp/viDFStates.pkl") 
 
         
         # Call VI with state-decision-transition tuples
         print("Algo")
-        return self.sol.performStandardVI(df, self.df_states["s_obj"].to_dict())
+        return self.sol.performStandardVI(df.copy(), self.df_states["s_obj"].to_dict())
 
 
-    def approxValueIteration(self) -> bool:
-        # Construct sample path
+    def approxValueIteration(self, params) -> bool:
 
-        # Call solution algorithm
-        pass
+        df = pd.merge(self.df_states, self.df_decisions, on=["s_key"])
+        df["t"] = df["s_obj"].apply(lambda s: s.get_t())
+
+        logging.info("Finished joining states and decisions. Shape of df is %s"  % str(df.shape))
+        
+        # Call approx VI with state-decision tuples
+        print("Algo")
+        return self.sol.performApproxVI(df.copy(), self.df_states["s_obj"].to_dict(), self.p, params[0], params[1], params[2])
 
 
-    def trivialPolicy(self) -> bool:
+    def myopicOptimization(self) -> bool:
+        df = pd.merge(self.df_states, self.df_decisions, on=["s_key"])
+        df["t"] = df["s_obj"].apply(lambda s: s.get_t())
+
+        logging.info("Finished joining states and decisions. Shape of df is %s"  % str(df.shape))
+        
+        # Call myopic optimization algo with state-decision tuples
+        print("Algo")
+        return self.sol.performMyopic(df.copy(), self.df_states["s_obj"].to_dict())
+
+
+    def approxDynamicProgramming(self) -> bool:
         pass
 

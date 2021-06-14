@@ -48,5 +48,5 @@ class Analysis:
 
         # Spool out excel 
         with pd.ExcelWriter('/usr/app/output/xlsx/analysis_%s.xlsx' % datetime.now().strftime("%Y%m%d_%H%M%S")) as writer:  
-            for var in self.allVar:
+            for var in self.allVar: 
                 var[1].to_excel(writer, sheet_name=var[0])

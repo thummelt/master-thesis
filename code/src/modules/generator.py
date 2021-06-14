@@ -106,6 +106,21 @@ def constructExogInfo(df: pd.DataFrame, p: Probabilities) -> pd.DataFrame:
     return pd.merge(df,df_p, on=["t"])
 
 
+def constructExogInfoT(df: pd.DataFrame, p: Probabilities, t: int, samples: int) -> pd.DataFrame:
+    # Construct ex_info data frame for given t
+    df_p = p.getProbabilitiesSampled(t*con.tau*60, samples)
+
+    # Need to match time index
+    df_p["t"] = df_p["t"]/int(con.tau*60)
+    df_p.reset_index(inplace=True,drop=True)
+            
+    return pd.merge(df,df_p, on=["t"])
+
+
+def constructTransition(df: pd.DataFrame) -> str:
+    return performTransition(df.loc[0, "s_obj"], df.loc[0, "d_obj"], df.loc[0, "p"], df.loc[0, "trpln"], df.loc[0, "s_prc_b"], df.loc[0, "prc_s"]).getKey()
+
+
 def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
     # Construct transition objects and get key of destination state
     df["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.p, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in tqdm(df.itertuples()))
@@ -120,7 +135,7 @@ def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
 
     logging.debug("DataFrame has %d rows after filtering invalid states." % len(df))
 
-    df.to_pickle("/usr/app/data/tmp/constructTrans.pkl") 
+    #df.to_pickle("/usr/app/data/tmp/constructTrans.pkl") 
 
     # Filter out rows leading to unknown (=> invalid) destination states
     df = df[df["s_d_key"].isin(states)]

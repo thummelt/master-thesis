@@ -11,6 +11,8 @@ T: float = 2# 24/tau
 # Convergence epsilon
 convergence: float = 0.1
 
+# Approximate VI smoothing factor
+alpha: float = 0.25
 
 
 #######################################################################################

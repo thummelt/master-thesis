@@ -112,6 +112,12 @@ class State:
     def set_V_N(self, x : float):
         self.v_n_1 = self.v_n
         self.v_n = x
+    
+    def set_V_N_AVI(self, x : float):
+        tmp = self.v_n
+        self.v_n = self.v_n_1*(1-con.alpha)+con.alpha*x
+        self.v_n_1 = tmp
+        
 
     def __eq__ (self, s) -> bool:
         return self.getKey() == s.getKey()
