@@ -47,8 +47,9 @@ def constructStates() -> pd.DataFrame:
     df.drop(df.index[[not checkState(s.t, s.B_L, s.V_TA, s.D) for s in df.itertuples()]], inplace=True)
 
     # Create state objects
-    df["s_obj"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda s: State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S))(s) for s in tqdm(df.itertuples()))
-    #[State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S) for s in tqdm(df.itertuples())]
+    # ERROR parallel execution here does not set isTerminal flag somehow :o
+    #df["s_obj"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda s: State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S))(s) for s in tqdm(df.itertuples()))
+    df["s_obj"] = [State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S) for s in tqdm(df.itertuples())]
                     
     df["s_key"] = df["s_obj"].apply(lambda x: x.getKey())
  
@@ -58,8 +59,8 @@ def constructStates() -> pd.DataFrame:
 def decisionSpace() -> pd.DataFrame:
     ## {0..my}*{0..my}*{0,1} -> {0}*{0..my}*{0,1} and {0..my}*{0}*{0,1}
 
-    df1 = pd.DataFrame({"x_G2V": [round(x,1) for x in np.arange(0.0,con.my+0.1, con.step_en)]})
-    df2 = pd.DataFrame({"x_V2G": [round(x,1) for x in np.arange(0.0,con.my+0.1, con.step_en)]})
+    df1 = pd.DataFrame({"x_G2V": [round(x,1) for x in np.arange(0.0,round(con.my,1)+0.1, con.step_en)]})
+    df2 = pd.DataFrame({"x_V2G": [round(x,1) for x in np.arange(0.0,round(con.my,1)+0.1, con.step_en)]})
     df3 = pd.DataFrame({"x_trip": [0,1]})
 
     df1["x_V2G"] = 0
@@ -82,7 +83,7 @@ def decisionSpace() -> pd.DataFrame:
 def constructDecisions(s:State, df_c: pd.DataFrame) -> pd.DataFrame:
 
     # Filter on y_t
-    df = df_c[df_c["x_trip"].apply(lambda x_t: False if (s.getY() == 1) & (x_t == 1) else True)].copy()
+    df = df_c[df_c["x_trip"].apply(lambda x_t: False if (s.getY() == 1) & (x_t == 1) else True)].copy().reset_index()
 
     # Filter out invalid decisions
     df.drop(df.index[[not checkDecision(s, d.d_obj) for d in df.itertuples()]], inplace=True)
@@ -124,9 +125,6 @@ def constructTransition(df: pd.DataFrame) -> str:
 def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
     # Construct transition objects and get key of destination state
     df["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.p, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in tqdm(df.itertuples()))
-    
-    # Append key for destination state 
-    #df["s_d_key"] = df["s_d_obj"].apply(lambda s: s.getKey())
 
     logging.debug("DataFrame has %d rows before transition pruning." % len(df))
 
@@ -135,13 +133,9 @@ def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
 
     logging.debug("DataFrame has %d rows after filtering invalid states." % len(df))
 
-    #df.to_pickle("/usr/app/data/tmp/constructTrans.pkl") 
-
     # Filter out rows leading to unknown (=> invalid) destination states
     df = df[df["s_d_key"].isin(states)]
-
     
     logging.debug("DataFrame has %d rows after transition pruning." % len(df))
-
 
     return df.copy()

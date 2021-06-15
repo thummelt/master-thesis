@@ -1,7 +1,7 @@
 from src.modules.state import State
 from src.modules.decision import Decision
 from src.modules import generator as g
-from src.modules.solutionAlgorithms import SolutionAlgorithms 
+from src.modules.solutionAlgorithms import SolutionAlgorithms
 from src.modules.probabilities import Probabilities
 from src.modules.analysis import Analysis
 from src.modules import constants as con
@@ -64,10 +64,10 @@ class App:
         self.key = "[%d-%d]" % (T if T != None else con.T, trip_max if trip_max != None else con.trip_max)
         
         # Override time and trpln parameters if given
-        if T != None:
+        if T is not None:
             con.T = T
         
-        if trip_max != None:
+        if trip_max is not None:
             con.trip_max = trip_max
 
         self.splittime = []
@@ -82,15 +82,21 @@ class App:
         self.splittime += [time.time()-self.starttime]
         self.an.addMeasure(self.key, len(self.df_states.index), "sspace")
 
+        #self.df_states.to_excel("/usr/app/output/xlsx/allstates.xlsx")
+
         logging.info("Finished creation of %d states" % len(self.df_states))
 
         # For each state (which are not terminal) construct all decisions  
         print("Decisions")
         df_dec = g.decisionSpace()
-        processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
+        # ERROR  parallel execution is errenerous
+        #processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
+        processed_list = [g.constructDecisions(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"])]
         self.df_decisions = pd.concat(processed_list)
         self.splittime += [time.time()-self.starttime]
         self.an.addMeasure(self.key, len(self.df_decisions.index), "dspace")
+
+        self.df_decisions.to_excel("/usr/app/output/xlsx/alldecisions.xlsx")
         
         logging.info("Finished creation of %d decisions" % len(self.df_decisions))
 
@@ -108,6 +114,8 @@ class App:
             self.algo = "Approxmiate Dynamic Programming"
         else:
             logging.error("No solution algorithm could be associated")
+
+        logging.info("Finished algorithm execution")
         
         self.splittime += [time.time()-self.starttime]
         if algo == 0:

@@ -22,7 +22,7 @@ class State:
 
     def __init__(self, t:int, b_l:float, v_ta: float,  d:float, p_b:float, p_s:float):
         self.t = t
-        self.B_L = b_l
+        self.B_L = round(b_l,1)
         self.V_TA = v_ta
 
         # Exogenous information that has arrived until t => incorporate for decision making
@@ -31,11 +31,12 @@ class State:
         self.P_S = p_s
 
         # Terminal state if at end of horizon and target energy level is met and vehicle is at home
-        self.isTerminal = ((self.B_L >= con.beta_T) & (self.V_TA == 0) & (self.t == con.T))
+        self.isTerminal = ((self.B_L >= con.beta_T) & (self.V_TA == 0.0) & (self.t == con.T))
+        
                           
         # Initialize values to 0 as goal is to maximize
-        self.v_n = 0
-        self.v_n_1 = -1
+        self.v_n = 0.0
+        self.v_n_1 = -1.0
 
     def __str__(self) -> str:
         return "State t=%d[(%s,%s,%s,%s,%s) - %s - (%s, %s)]" % ( self.t, self.B_L, self.V_TA, self.D, self.P_B, self.P_S, self.isTerminal, self.v_n, self.v_n_1)
@@ -114,9 +115,8 @@ class State:
         self.v_n = x
     
     def set_V_N_AVI(self, x : float):
-        tmp = self.v_n
-        self.v_n = self.v_n_1*(1-con.alpha)+con.alpha*x
-        self.v_n_1 = tmp
+        self.v_n_1 = self.v_n
+        self.v_n = self.v_n_1*(1.0-con.alpha)+con.alpha*x
         
 
     def __eq__ (self, s) -> bool:

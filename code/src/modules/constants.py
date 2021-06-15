@@ -6,7 +6,7 @@
 tau: int = 0.25
 
 # Time horizon
-T: float = 2# 24/tau
+T: int = 2# 24/tau
 
 # Convergence epsilon
 convergence: float = 0.1
