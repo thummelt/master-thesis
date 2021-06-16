@@ -100,7 +100,7 @@ class App:
             self.splittime += [time.time()-self.starttime]
             self.an.addMeasure(self.key, len(self.df_decisions.index), "dspace")
 
-        self.df_decisions.to_excel("/usr/app/output/xlsx/alldecisions.xlsx")
+        #self.df_decisions.to_excel("/usr/app/output/xlsx/alldecisions.xlsx")
         
         logging.info("Finished creation of %d decisions" % len(self.df_decisions))
 

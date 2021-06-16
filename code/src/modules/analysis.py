@@ -51,9 +51,9 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
     cState = iniState
     cStateObj = states[iniState]
 
-    iterations = exog["smpl"].max()+1
+    iterations = exog["smpl"].max()
 
-    for i in np.arange(1, iterations):
+    for i in np.arange(1, iterations+1):
 
         cState = iniState
         cStateObj = states[iniState]
