@@ -18,7 +18,7 @@ class Decision:
         return "Decision [(%s,%s,%s)]" % ( self.x_G2V, self.x_V2G, self.x_t)
 
     def getKey(self) -> str:
-        return "(%s,%s,%s)" % ( self.x_G2V, self.x_V2G, self.x_t) 
+        return "%s,%s,%s" % ( self.x_G2V, self.x_V2G, self.x_t) 
     
     #######################################################################################
     # Getter and setter                                                                   #

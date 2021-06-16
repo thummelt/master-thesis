@@ -56,6 +56,7 @@ class App:
         # Analysis 
         self.an = Analysis()
 
+
     def putout(self):
         self.an.putout()
          
@@ -82,19 +83,22 @@ class App:
         self.splittime += [time.time()-self.starttime]
         self.an.addMeasure(self.key, len(self.df_states.index), "sspace")
 
-        #self.df_states.to_excel("/usr/app/output/xlsx/allstates.xlsx")
+        self.df_states.to_pickle("/usr/app/output/df/allstates_%s.pkl" % self.key)
 
         logging.info("Finished creation of %d states" % len(self.df_states))
 
         # For each state (which are not terminal) construct all decisions  
         print("Decisions")
         df_dec = g.decisionSpace()
-        # ERROR  parallel execution is errenerous
-        #processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
-        processed_list = [g.constructDecisions(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"])]
-        self.df_decisions = pd.concat(processed_list)
-        self.splittime += [time.time()-self.starttime]
-        self.an.addMeasure(self.key, len(self.df_decisions.index), "dspace")
+
+        # Not constructing decisions for adp
+        if algo != 3:
+            # ERROR  parallel execution is errenerous
+            #processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
+            processed_list = [g.constructDecisions(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"])]
+            self.df_decisions = pd.concat(processed_list)
+            self.splittime += [time.time()-self.starttime]
+            self.an.addMeasure(self.key, len(self.df_decisions.index), "dspace")
 
         self.df_decisions.to_excel("/usr/app/output/xlsx/alldecisions.xlsx")
         
@@ -110,12 +114,13 @@ class App:
             self.approxValueIteration(params)
             self.algo = "Approximate Value Iteration"
         elif algo == 3:
-            self.approxDynamicProgramming()
+            self.approxDynamicProgramming(params, df_dec)
             self.algo = "Approxmiate Dynamic Programming"
         else:
             logging.error("No solution algorithm could be associated")
 
-        logging.info("Finished algorithm execution")
+        logging.info("Finished algorithm execution.")
+        logging.info("Peace out.")
         
         self.splittime += [time.time()-self.starttime]
         if algo == 0:
@@ -146,7 +151,6 @@ class App:
         logging.info("Finished creation of transitions. Shape of df is %s" % str(df.shape))
 
         #df.to_pickle("/usr/app/data/tmp/viInputDf.pkl") 
-        #self.df_states.to_pickle("/usr/app/data/tmp/viDFStates.pkl") 
 
         
         # Call VI with state-decision-transition tuples
@@ -177,6 +181,11 @@ class App:
         return self.sol.performMyopic(df.copy(), self.df_states["s_obj"].to_dict())
 
 
-    def approxDynamicProgramming(self) -> bool:
-        pass
+    def approxDynamicProgramming(self, params, df_dec) -> bool:
+        df = self.df_states.copy()
+        df["t"] = df["s_obj"].apply(lambda s: s.get_t())
+
+        # Call adp algo with state-decision tuples
+        print("Algo")
+        return self.sol.performApproximateDP(df.copy(), df_dec, self.df_states["s_obj"].to_dict(), self.p, params[0], params[1])
 

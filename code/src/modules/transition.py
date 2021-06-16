@@ -9,7 +9,7 @@ import math
 
 ## Represents transition object
 
-def performTransition(s_s: State, x: Decision, p: float, trpln: float, prc_b: float, prc_s: float) -> State:
+def performTransition(s_s: State, x: Decision, trpln: float, prc_b: float, prc_s: float) -> State:
     
     # t
     t = s_s.get_t()+1
@@ -49,11 +49,11 @@ class Transition:
         self.prc_s = prc_s
 
         # Calculate transition to to destination state
-        self.s_d = self.performTransition(self.s_s,  self.x, self.p, self.trpln, self.prc_b, self.prc_s)
+        self.s_d = self.performTransition(self.s_s,  self.x, self.trpln, self.prc_b, self.prc_s)
 
  
 
-    def performTransition(self, s_s: State, x: Decision, p: float, trpln: float, prc_b: float, prc_s: float) -> State:
+    def performTransition(self, s_s: State, x: Decision, trpln: float, prc_b: float, prc_s: float) -> State:
         
         # t
         t = s_s.get_t()+1
