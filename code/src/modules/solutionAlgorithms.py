@@ -14,6 +14,7 @@ import logging
 import datetime
 import operator
 import openpyxl
+from pathlib import Path
 
 # Represents VI algorithm
 
@@ -28,7 +29,7 @@ class SolutionAlgorithms:
         logging.basicConfig(filename="logs" + '/' + datetime.datetime.now().strftime('%Y%m%d_%H%M') + '_app.log',
                             filemode='w+', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
-    def performStandardVI(self, df: pd.DataFrame, states: Dict[str, State]) -> bool:
+    def performStandardVI(self, df: pd.DataFrame, states: Dict[str, State], key: str  ="") -> bool:
         """Perform standard value iteration
 
         Args:
@@ -92,12 +93,11 @@ class SolutionAlgorithms:
             "value": list(map(lambda s: s.get_V_N(), filter(lambda s: s.get_isTerminal(), states.values())))},
         ), ignore_index=True)
 
-        best_dec.to_excel("/usr/app/output/xlsx/01_VI/vi_best_decisions.xlsx")
-        best_dec.to_pickle("/usr/app/output/df/vi_best_decisions.pkl")
+        best_dec.to_excel("/usr/app/output/xlsx/01_VI/%s-best_decisions.xlsx" % key)
+        best_dec.to_pickle("/usr/app/output/df/%s-best_decisions.xlsx" % key)
 
 
-
-    def performMyopic(self, df: pd.DataFrame, states: Dict[str, State]):
+    def performMyopic(self, df: pd.DataFrame, states: Dict[str, State], key: str = ""):
         """Myopic optimization by maximizing contribution of current decision
 
         # Construct all states 
@@ -137,11 +137,11 @@ class SolutionAlgorithms:
             "value": list(map(lambda s: s.get_V_N(), filter(lambda s: s.get_isTerminal(), states.values())))},
         ), ignore_index=True)
 
-        best_dec.to_excel("/usr/app/output/xlsx/02_MO/myopic_best_decisions.xlsx")
-        best_dec.to_pickle("/usr/app/output/df/mo_best_decisions.pkl")
+        best_dec.to_excel("/usr/app/output/xlsx/02_MO/%s-best_decisions.xlsx" % key) 
+        best_dec.to_pickle("/usr/app/output/df/%s-best_decisions.pkl" % key)
         
 
-    def performApproxVI(self, df: pd.DataFrame, states: Dict[str, State], p: Probabilities, iniState: str, n: int, samples: int = 20):
+    def performApproxVI(self, df: pd.DataFrame, states: Dict[str, State], p: Probabilities, iniState: str, n: int, samples: int = 20, key: str = ""):
         """Value Iteration with different data frame (only partial transitions given) and different state value update function
 
         Args:
@@ -164,7 +164,7 @@ class SolutionAlgorithms:
 
         cont["cont"] = cont["cont"].astype(float)
 
-        cont.to_excel("/usr/app/output/xlsx/03_AVI/avi_cont.xlsx")
+        #cont.to_excel("/usr/app/output/xlsx/03_AVI/avi_cont.xlsx")
         
         ## Store new value
         logging.debug("Updating state values with calculated contribution")
@@ -193,7 +193,7 @@ class SolutionAlgorithms:
 
             # Perform transitions
             df_trans = g.constructTransitions(df_exo, states)
-            df_trans.to_excel("/usr/app/output/xlsx/03_AVI/avi_df2_%s.xlsx" % str(iterationCounter))
+            #df_trans.to_excel("/usr/app/output/xlsx/03_AVI/avi_df2_%s.xlsx" % str(iterationCounter))
             
             # Caclulate expected contribution
             df_trans["ex_cont"] = df_trans["p"] * df_trans["s_d_key"].apply(lambda s: states.get(s).get_V_N())
@@ -202,7 +202,7 @@ class SolutionAlgorithms:
             grp_sum = df_trans[["s_key", "d_key", "ex_cont"]].groupby(["s_key", "d_key"])["ex_cont"].sum().reset_index()
             grp_sum = pd.merge(grp_sum, cont[["s_key", "d_key", "cont"]], on=["s_key", "d_key"])
             grp_sum["tot_cont"] = grp_sum["cont"] + con.expec*grp_sum["ex_cont"]
-            grp_sum.to_excel("/usr/app/output/xlsx/03_AVI/avi_grp_%s.xlsx" % str(iterationCounter))
+            #grp_sum.to_excel("/usr/app/output/xlsx/03_AVI/avi_grp_%s.xlsx" % str(iterationCounter))
             
             # Select decision maximizing expected total contribution
             max_con = grp_sum[["s_key", "tot_cont"]].groupby(["s_key"])["tot_cont"].max()
@@ -224,18 +224,16 @@ class SolutionAlgorithms:
             logging.debug("Next state is %s" % cState)
 
 
-        logging.debug("Finished. Starting to spool out best decisions")
-
-        
+        logging.debug("Finished. Starting to spool out best decisions")        
         
         best_dec = best_dec.append(cont.loc[cont.loc[~cont.s_key.isin(best_dec.s_key)].groupby(["s_key"])["cont"].idxmax(), ["s_key", "d_key"]])
         best_dec["value"] = best_dec["s_key"].apply(lambda s: states[s].get_V_N())
 
-        best_dec.to_excel("/usr/app/output/xlsx/03_AVI/avi_best_decisions.xlsx")
-        best_dec.to_pickle("/usr/app/output/df/avi_best_decisions.pkl")
+        best_dec.to_excel("/usr/app/output/xlsx/03_AVI/%s-best_decisions.xlsx" % key)
+        best_dec.to_pickle("/usr/app/output/df/%s-best_decisions.pkl" % key)
 
     
-    def performApproximateDP(self, df_st: pd.DataFrame, df_dec: pd.DataFrame, states: Dict[str, State], p: Probabilities, iniState: str, n: int, samples: int = None):
+    def performApproximateDP(self, df_st: pd.DataFrame, df_dec: pd.DataFrame, states: Dict[str, State], p: Probabilities, iniState: str, n: int, samples: int = None, key: str = ""):
         """Perform approximate dynamic programming
 
         # Assign starting state
@@ -271,6 +269,7 @@ class SolutionAlgorithms:
 
             iterationCounter += 1
             logging.debug("Current iteration %d of %d" % (iterationCounter, n))
+            print("%d/%d" % (iterationCounter, n))
 
             # Loop over all time slices
             for t in np.arange(0, con.T):
@@ -336,13 +335,25 @@ class SolutionAlgorithms:
             
             # End outer iteration loop
 
-        logging.debug("Finished. Starting to spool out best decisions")
+        logging.debug("Finished. Starting to spool out best decisions after running MO for remaining states")
 
         # Add all non-visited states to df with myopic decision
         df_st.reset_index(inplace=True)
         
-        ls_mising_dec = [g.constructDecisions(states[s], df_dec) for s in df_st.loc[(~df_st.s_key.isin(best_dec.s_key)) & (df_st.s_obj.apply(lambda s: not s.get_isTerminal())), "s_key"]]
-        df_missing_dec = pd.concat(ls_mising_dec)
+        
+
+        dec_space = Path("/usr/app/output/df/[%d-%d]-decisionspace.pkl" %  (con.T, con.trip_max))
+        if dec_space.is_file():
+            logging.debug("Reading decision space from disk.")
+            df_missing_dec = pd.read_pickle(dec_space.absolute())
+            # Need to prune loaded decisions. No decision constructed for t = 0 as we have initial state - not for terminal nodes - only for states without decision
+            df_missing_dec = df_missing_dec.loc[(~df_missing_dec.s_key.isin(best_dec.s_key)) & (df_missing_dec.s_key.isin(df_st.s_key))]
+            df_missing_dec = df_missing_dec.loc[(df_missing_dec.s_key.apply(lambda s: (states[s].get_t() != 0) & (not states[s].get_isTerminal())))]
+        else:
+            logging.debug("Constructing decision space freshly.")
+            ls_mising_dec = [g.constructDecisions(states[s], df_dec) for s in df_st.loc[(~df_st.s_key.isin(best_dec.s_key)) & (df_st.s_obj.apply(lambda s: not s.get_isTerminal())), "s_key"]]
+            df_missing_dec = pd.concat(ls_mising_dec)
+            df_missing_dec.to_pickle("/usr/app/output/df/[%d-%d]-decisionspace.pkl" %  (con.T, con.trip_max))
 
         logging.info("Start to run myopic optimization for %d state with valid decisions of %d missing of %d total states" % (len(df_missing_dec.s_key.unique()), len(df_st.loc[~df_st.s_key.isin(best_dec.s_key)]), len(df_st.index)))
 
@@ -371,13 +382,13 @@ class SolutionAlgorithms:
 
         # Add all remaining (terminal) states
         best_dec = pd.concat([best_dec, df_missing_dec])
-        best_dec = pd.concat([best_dec, pd.DataFrame({"s_key": df_st.loc[df_st.s_obj.apply(lambda s: s.get_isTerminal()), "s_key"]})]).reset_index()
+        best_dec = pd.concat([best_dec, pd.DataFrame({"s_key": df_st.loc[df_st.s_obj.apply(lambda s: s.get_isTerminal()), "s_key"]})]).reset_index(drop=True)
 
         # Values
         best_dec["value"] = best_dec["s_key"].apply(lambda s: states.get(s).get_V_N())
 
-        best_dec.to_excel("/usr/app/output/xlsx/04_ADP/adp_best_decisions.xlsx")
-        best_dec.to_pickle("/usr/app/output/df/adp_best_decisions.pkl")
+        best_dec.to_excel("/usr/app/output/xlsx/04_ADP/%s-best_decisions.xlsx" % key)
+        best_dec.to_pickle("/usr/app/output/df/%s-best_decisions.pkl" % key)
 
 
 

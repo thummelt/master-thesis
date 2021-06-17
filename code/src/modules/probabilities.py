@@ -22,6 +22,8 @@ class Probabilities:
     def __init__(self):
         self.d_trpstrt = pd.read_pickle("/usr/app/data/probabilities/trpstrt.pkl")
         self.d_len = pd.read_pickle("/usr/app/data/probabilities/trplen.pkl")
+        # Only integrating trip until given trip_max val
+        self.d_len = self.d_len.loc[:,[True] + [float(c) <= con.trip_max for c in self.d_len.columns[1:]]]
         self.d_price_b = pd.read_pickle("/usr/app/data/probabilities/d_prc_b.pkl")
         self.d_price_s = pd.read_pickle("/usr/app/data/probabilities/d_prc_s.pkl")
 
@@ -87,7 +89,7 @@ class Probabilities:
         df_p = self._getProbDF(dfs_y, t)[self.uncertainties+["p"]+["t"]].append(self._getProbDF(dfs_n, t)[self.uncertainties+["p"]+["t"]], ignore_index=True)
 
         # Sample random numbers
-        df_p = df_p.loc[np.random.choice(np.arange(0, len(df_p.index)), size=samples, replace=True, p=df_p["p"].tolist())]
+        df_p = df_p.loc[np.random.choice(np.arange(0, len(df_p.index)), size=samples, replace=True, p= np.divide(df_p["p"], df_p["p"].sum()))]
         df_p["p"] = 1/samples
 
         return df_p
@@ -106,6 +108,7 @@ class Probabilities:
             res["p"] = res["p"]*res[p]
         
         res["t"] = t
+        res["p"] = res["p"].astype(float)
         return res.copy()
 
 

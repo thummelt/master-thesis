@@ -16,9 +16,7 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 import multiprocessing as mp
 import time
-
-
-from fnmatch import fnmatch
+from pathlib import Path
 
 
 
@@ -58,18 +56,20 @@ class App:
 
 
     def putout(self):
-        self.an.putout()
+        self.an.putout(self.key)
          
-    def run(self, T = None, trip_max = None, algo: int = 0, params: Tuple = None):
+    def run(self, T = None, trip_max = None, algo: str = "adp", params: Tuple = None):
 
-        self.key = "[%d-%d]" % (T if T != None else con.T, trip_max if trip_max != None else con.trip_max)
         
+        self.algo = algo
         # Override time and trpln parameters if given
         if T is not None:
             con.T = T
         
         if trip_max is not None:
             con.trip_max = trip_max
+
+        self.key = "[%d-%d]" % (con.T, con.trip_max)
 
         self.splittime = []
 
@@ -78,12 +78,13 @@ class App:
 
         # States
         print("States")
-        self.df_states = g.constructStates()
+        self.df_states = g.constructStates(params)
         self.df_states.set_index("s_key", inplace=True, drop=True)
-        self.splittime += [time.time()-self.starttime]
-        self.an.addMeasure(self.key, len(self.df_states.index), "sspace")
+        if algo == "vi":
+            self.splittime += [time.time()-self.starttime]
+            self.an.addMeasure(self.key, len(self.df_states.index), "sspace")
 
-        self.df_states.to_pickle("/usr/app/output/df/allstates_%s.pkl" % self.key)
+        self.df_states.to_pickle("/usr/app/output/df/%s-statespace.pkl" % self.key)
 
         logging.info("Finished creation of %d states" % len(self.df_states))
 
@@ -92,38 +93,55 @@ class App:
         df_dec = g.decisionSpace()
 
         # Not constructing decisions for adp
-        if algo != 3:
+        if algo != "adp":
             # ERROR  parallel execution is errenerous
             #processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
-            processed_list = [g.constructDecisions(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"])]
-            self.df_decisions = pd.concat(processed_list)
-            self.splittime += [time.time()-self.starttime]
-            self.an.addMeasure(self.key, len(self.df_decisions.index), "dspace")
+            
+            dec_space = Path("/usr/app/output/df/[%d-%d]-decisionspace.pkl" %  (con.T, con.trip_max))
+            if dec_space.is_file():
+                logging.debug("Reading decision space from disk.")
+                self.df_decisions = pd.read_pickle(dec_space.absolute())
+            else:
+                logging.debug("Constructing decision space freshly.")
+                ls_mising_dec = [g.constructDecisions(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"])]
+                self.df_decisions = pd.concat(ls_mising_dec)
+                self.df_decisions.to_pickle("/usr/app/output/df/%s-decisionspace.pkl" % self.key)
+            
 
-        #self.df_decisions.to_excel("/usr/app/output/xlsx/alldecisions.xlsx")
+            if algo == "vi":
+                self.splittime += [time.time()-self.starttime]
+                self.an.addMeasure(self.key, len(self.df_decisions.index), "dspace")            
+
+            logging.info("Finished creation of %d decisions" % len(self.df_decisions))        
         
-        logging.info("Finished creation of %d decisions" % len(self.df_decisions))
 
-        if algo == 0:
+         # Adapting key to also integrate algorithm
+        self.key = "[%s%s]-" % (algo, "-"+ str(params[1:]).replace(",","") if params is not None else "") + self.key
+
+        logging.info("Starting algorithm execution for key %s." % self.key)
+
+
+        if algo == "vi":
             self.valueIteration()
-            self.algo = "Value Iteration"
-        elif algo == 1:
+            
+        elif algo == "mo":
             self.myopicOptimization()
-            self.algo = "Myopic Optimization"
-        elif algo == 2:
+            
+        elif algo == "avi":
             self.approxValueIteration(params)
-            self.algo = "Approximate Value Iteration"
-        elif algo == 3:
+
+        elif algo == "adp":
             self.approxDynamicProgramming(params, df_dec)
-            self.algo = "Approxmiate Dynamic Programming"
+
         else:
             logging.error("No solution algorithm could be associated")
 
         logging.info("Finished algorithm execution.")
         logging.info("Peace out.")
         
-        self.splittime += [time.time()-self.starttime]
-        if algo == 0:
+        
+        if algo == "vi":
+            self.splittime += [time.time()-self.starttime]
             self.an.addMeasure(self.key, self.splittime, "splitrt")
         self.an.addMeasure(self.key, time.time()-self.starttime, "rt")
         
@@ -145,17 +163,17 @@ class App:
         print("Trans")
         df = g.constructTransitions(df, self.df_states.index.values.tolist())
         df.reset_index(inplace=True, drop=True)
-        self.splittime += [time.time()-self.starttime]
-        self.an.addMeasure(self.key, len(df.index), "tspace")
+        if self.algo == "vi":
+            self.splittime += [time.time()-self.starttime]
+            self.an.addMeasure(self.key, len(df.index), "tspace")
 
         logging.info("Finished creation of transitions. Shape of df is %s" % str(df.shape))
 
         #df.to_pickle("/usr/app/data/tmp/viInputDf.pkl") 
 
-        
         # Call VI with state-decision-transition tuples
         print("Algo")
-        return self.sol.performStandardVI(df.copy(), self.df_states["s_obj"].to_dict())
+        return self.sol.performStandardVI(df.copy(), self.df_states["s_obj"].to_dict(), self.key)
 
 
     def approxValueIteration(self, params) -> bool:
@@ -167,7 +185,7 @@ class App:
         
         # Call approx VI with state-decision tuples
         print("Algo")
-        return self.sol.performApproxVI(df.copy(), self.df_states["s_obj"].to_dict(), self.p, params[0], params[1], params[2])
+        return self.sol.performApproxVI(df.copy(), self.df_states["s_obj"].to_dict(), self.p, params[0], params[1], params[2], self.key)
 
 
     def myopicOptimization(self) -> bool:
@@ -178,7 +196,7 @@ class App:
         
         # Call myopic optimization algo with state-decision tuples
         print("Algo")
-        return self.sol.performMyopic(df.copy(), self.df_states["s_obj"].to_dict())
+        return self.sol.performMyopic(df.copy(), self.df_states["s_obj"].to_dict(), self.key)
 
 
     def approxDynamicProgramming(self, params, df_dec) -> bool:
@@ -187,5 +205,5 @@ class App:
 
         # Call adp algo with state-decision tuples
         print("Algo")
-        return self.sol.performApproximateDP(df.copy(), df_dec, self.df_states["s_obj"].to_dict(), self.p, params[0], params[1])
+        return self.sol.performApproximateDP(df.copy(), df_dec, self.df_states["s_obj"].to_dict(), self.p, params[0], params[1], params[2], self.key)
 

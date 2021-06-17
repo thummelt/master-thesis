@@ -11,6 +11,7 @@ import pandas as pd
 from datetime import datetime
 from typing import Dict, Tuple
 import numpy as np
+import logging
 
 # Stores measures and provide evaluation functionality
 
@@ -29,7 +30,7 @@ def analyseValue(algo_dec: Dict[str, pd.DataFrame], iniState: State, prob: Proba
         scenario_runs = []
 
         for scen, exo in scen_exo.items():
-            print("%s - %d" % (algo, scen))
+            logging.info("%s - %d" % (algo, scen))
             res = runScen(algo, scen, dec, exo.copy(), iniState, states)
             results.loc[len(results.index)] = [algo, scen, res[0]]
             scenario_runs += [res[1]]
@@ -59,9 +60,7 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
         cStateObj = states[iniState]
 
         for t in np.arange(0,con.T):
-            #print("%d - %d" % (i, t))
-            #print(cState)
-            #print(cStateObj)
+            logging.info("%d - %d" % (i, t))
             # Slice exog on smpls
             exo = exog.loc[exog.smpl == i, :].copy()
 
@@ -85,7 +84,6 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
             
 
     return (details.loc[:, "Contribution"].sum()/iterations, details)
-
 
 def createScenarios(prob: Probabilities) -> Dict[int, pd.DataFrame]:
     s1 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s"])
@@ -125,6 +123,8 @@ class Analysis:
 
     # Variables to store measures
     runtime = pd.DataFrame(columns=["time"])
+
+    # Only for value iteration
     splitRuntime = pd.DataFrame(
         columns=["t_state", "d_state", "tr_state", "vi"])
     stateSpace = pd.DataFrame(columns=["amount"])
@@ -155,13 +155,14 @@ class Analysis:
             return
 
 
-    def putout(self):
+    def putout(self, key):
         # Spool out dataframe pkl
         for var in self.allVar:
-            var[1].to_pickle("/usr/app/data/tmp/%s_%s.pkl" %
-                             (var[0], datetime.now().strftime("%Y%m%d_%H%M%S")))
+            if len(var[1].index) != 0:
+                var[1].to_pickle("/usr/app/data/tmp/%s_%s.pkl" % (key, var[0]))
 
         # Spool out excel
-        with pd.ExcelWriter('/usr/app/output/xlsx/analysis_%s.xlsx' % datetime.now().strftime("%Y%m%d_%H%M%S")) as writer:
+        with pd.ExcelWriter('/usr/app/output/xlsx/%s-analysis.xlsx' % key) as writer:
             for var in self.allVar:
-                var[1].to_excel(writer, sheet_name = var[0])
+                if len(var[1].index) != 0:
+                    var[1].to_excel(writer, sheet_name = var[0])

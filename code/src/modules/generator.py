@@ -9,7 +9,7 @@ from src.modules.constraintChecker import checkDecision, checkState
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
-from typing import List
+from typing import List, Tuple
 import math
 from joblib import Parallel, delayed
 import multiprocessing as mp
@@ -18,10 +18,10 @@ import logging
 
 
 
-def constructStates() -> pd.DataFrame:
+def constructStates(params: Tuple = None) -> pd.DataFrame:
     ## {\beta_min..\beta_max}*{0..max_trip/speed}*{0..max_trip}*{prc_b}*{prc_b|prc_s}
 
-    df0 = pd.DataFrame({"key" : 0, "t": list(np.arange(0,con.T+1, 1))})
+    df0 = pd.DataFrame({"key" : 0, "t": list(np.arange(0 if params is None else 1,con.T+1, 1))})
     df1 = pd.DataFrame({"key" : 0, "B_L": [round(x,1) for x in np.arange(con.beta_min,con.beta_max+con.step_en, con.step_en)]})
     df2 = pd.DataFrame({"key" : 0, "V_TA": [0.0]+list(np.arange(0.5,con.trip_max+1, 1))})
     df3 = pd.DataFrame({"key" : 0, "D": [0.0]+list(np.arange(0.5,con.trip_max+1, 1))}) # Might be adjusted to match prob distribution
@@ -31,6 +31,7 @@ def constructStates() -> pd.DataFrame:
     df_prc_s = pd.read_pickle("/usr/app/data/probabilities/d_prc_s.pkl")
     df4 = pd.merge(df_prc_b,df_prc_s, on=["t"], suffixes=("_b", "_s")).loc[:,["t","prc_b", "prc_s"]]
     df4.rename(columns={"prc_b":"P_B", "prc_s":"P_S"}, inplace=True)
+
     df4["t"] = df4["t"]/int(60*con.tau) # given in 15*t for t = 0, ..., T - therefore calculation required
 
 
@@ -40,6 +41,14 @@ def constructStates() -> pd.DataFrame:
             .pipe(pd.merge, right=df3, on=["key"])
             .pipe(pd.merge, right=df4, on=["t"]) # Prices only merged inner on t and not crossjoin!
     )
+
+     ## Add initial state
+    if params is not None:
+        ls = [0] + list(map(float, params[0].split(",")))
+        df.loc[len(df.index)] = ls
+
+    df["t"] = df["t"].astype(int)
+    df.drop(columns = ["key"], inplace = True)
 
     df.drop_duplicates(ignore_index=True, inplace=True)
 
