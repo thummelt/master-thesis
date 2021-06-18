@@ -17,7 +17,7 @@ from joblib import Parallel, delayed
 import multiprocessing as mp
 import time
 from pathlib import Path
-
+import os
 
 
 ## Sets algorithm up. Called by Jupyter NB
@@ -34,6 +34,8 @@ class App:
     splittime = []
     algo : str
 
+    directory : str
+
     ## States as dataframe to speed up lookup
     df_states = pd.DataFrame(columns=["s_key", "s_obj"])
 
@@ -41,25 +43,32 @@ class App:
     df_decisions = pd.DataFrame(columns=["d_key", "s_key", "d_obj"])
 
 
-    def __init__(self):
+    def __init__(self, algo):
         logging.basicConfig(filename="logs" + '/' + datetime.datetime.now().strftime('%Y%m%d_%H%M') + '_app.log',
                         filemode='w+', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-
-        # Solver
-        self.sol = SolutionAlgorithms()
 
         # Probabilities
         self.p = Probabilities()
 
-        # Analysis 
-        self.an = Analysis()
+        # Analysis
+        self.an = Analysis(algo)
 
 
     def putout(self):
-        self.an.putout(self.key)
+        self.an.putout(self.algo)
          
     def run(self, T = None, trip_max = None, algo: str = "adp", params: Tuple = None):
 
+        # Create directory
+        self.directory = "/usr/app/output/xlsx/%s/%s/" % (algo, datetime.datetime.now().strftime('%Y%m%d_%H%M'))
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+
+        # Solver
+        self.sol = SolutionAlgorithms(self.directory)
+        
+        # Analysis 
+        self.an.setDir(self.directory)
         
         self.algo = algo
         # Override time and trpln parameters if given
@@ -82,7 +91,7 @@ class App:
         self.df_states.set_index("s_key", inplace=True, drop=True)
         if algo == "vi":
             self.splittime += [time.time()-self.starttime]
-            self.an.addMeasure(self.key, len(self.df_states.index), "sspace")
+            self.an.addMeasure(self.key, [con.T, con.trip_max, len(self.df_states.index)], "sspace")
 
         self.df_states.to_pickle("/usr/app/output/df/%s-statespace.pkl" % self.key)
 
@@ -110,7 +119,7 @@ class App:
 
             if algo == "vi":
                 self.splittime += [time.time()-self.starttime]
-                self.an.addMeasure(self.key, len(self.df_decisions.index), "dspace")            
+                self.an.addMeasure(self.key, [con.T, con.trip_max, len(self.df_decisions.index)], "dspace")            
 
             logging.info("Finished creation of %d decisions" % len(self.df_decisions))        
         
@@ -142,8 +151,8 @@ class App:
         
         if algo == "vi":
             self.splittime += [time.time()-self.starttime]
-            self.an.addMeasure(self.key, self.splittime, "splitrt")
-        self.an.addMeasure(self.key, time.time()-self.starttime, "rt")
+            self.an.addMeasure(self.key, [con.T, con.trip_max] + self.splittime, "splitrt")
+        self.an.addMeasure(self.key, [con.T, con.trip_max, time.time()-self.starttime] if params is None else [con.T, con.trip_max,params[1], params[2], time.time()-self.starttime], "rt")
         
     
     def valueIteration(self) -> bool:
@@ -165,7 +174,7 @@ class App:
         df.reset_index(inplace=True, drop=True)
         if self.algo == "vi":
             self.splittime += [time.time()-self.starttime]
-            self.an.addMeasure(self.key, len(df.index), "tspace")
+            self.an.addMeasure(self.key, [con.T, con.trip_max, len(df.index)], "tspace")
 
         logging.info("Finished creation of transitions. Shape of df is %s" % str(df.shape))
 

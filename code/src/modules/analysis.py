@@ -90,7 +90,6 @@ def createScenarios(prob: Probabilities) -> Dict[int, pd.DataFrame]:
     s2 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s"])
     s3 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s"])
 
-    print(con.trip_max)
     for t in np.arange(con.T):
         p = prob.getProbabilities(t*con.tau*60)
         p = p.loc[(p.p > 0.0) & (p.trpln <= con.trip_max)].reset_index()
@@ -122,47 +121,67 @@ def createScenarios(prob: Probabilities) -> Dict[int, pd.DataFrame]:
 class Analysis:
 
     # Variables to store measures
-    runtime = pd.DataFrame(columns=["time"])
+    runtime = None
 
     # Only for value iteration
-    splitRuntime = pd.DataFrame(
-        columns=["t_state", "d_state", "tr_state", "vi"])
-    stateSpace = pd.DataFrame(columns=["amount"])
-    decisionSpace = pd.DataFrame(columns=["amount"])
-    totalSpace = pd.DataFrame(columns=["amount"])
+    splitRuntime = None
+    stateSpace = None
+    decisionSpace = None
+    totalSpace = None
 
     allVar = []
 
-    def __init__(self):
-        self.allVar = [("rt", self.runtime), ("splitrt", self.splitRuntime), ("sspace",
+    directory : str
+
+    def __init__(self, algo):      
+        # Variables to store measures
+        self.runtime = pd.DataFrame(columns = ["T", "trip_max", "time"])
+
+        # Only for value iteration
+        self.splitRuntime = pd.DataFrame(
+            columns=["T", "trip_max", "t_state", "d_state", "tr_state", "vi"])
+        self.stateSpace = pd.DataFrame(columns=["T", "trip_max","amount"])
+        self.decisionSpace = pd.DataFrame(columns=["T", "trip_max","amount"])
+        self.totalSpace = pd.DataFrame(columns=["T", "trip_max","amount"]) 
+
+        if algo in ["avi", "adp"]:
+            self.runtime = pd.DataFrame(columns = ["T", "trip_max", "iterations", "samples", "time"])
+            
+        if algo == "vi":
+            self.allVar = [("rt", self.runtime), ("splitrt", self.splitRuntime), ("sspace",
                         self.stateSpace), ("dspace", self.decisionSpace), ("tspace", self.totalSpace)]
+        else:
+            self.allVar = [("rt", self.runtime)]
 
     def addMeasure(self, key, value, m):
         if m == "rt":
-            self.runtime.loc[key]=[value]
+            self.runtime.loc[key]=value
             return
         if m == "splitrt":
             self.splitRuntime.loc[key]=value
             return
         if m == "sspace":
-            self.stateSpace.loc[key]=[value]
+            self.stateSpace.loc[key]=value
             return
         if m == "dspace":
-            self.decisionSpace.loc[key]=[value]
+            self.decisionSpace.loc[key]=value
             return
         if m == "tspace":
-            self.totalSpace.loc[key]=[value]
+            self.totalSpace.loc[key]=value
             return
 
+    def setDir(self, direc: str):
+        self.directory = direc
 
-    def putout(self, key):
+
+    def putout(self, algo):
         # Spool out dataframe pkl
         for var in self.allVar:
             if len(var[1].index) != 0:
-                var[1].to_pickle("/usr/app/data/tmp/%s_%s.pkl" % (key, var[0]))
+                var[1].to_pickle("%s/%s.pkl" % (self.directory, var[0]))
 
         # Spool out excel
-        with pd.ExcelWriter('/usr/app/output/xlsx/%s-analysis.xlsx' % key) as writer:
+        with pd.ExcelWriter('%s/%s-analysis.xlsx' % (self.directory, algo)) as writer:
             for var in self.allVar:
                 if len(var[1].index) != 0:
                     var[1].to_excel(writer, sheet_name = var[0])
