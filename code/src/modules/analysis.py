@@ -14,39 +14,41 @@ import numpy as np
 import logging
 
 # Stores measures and provide evaluation functionality
+ 
+logging.basicConfig(filename="logs" + '/' + datetime.now().strftime('%Y%m%d_%H%M') + '_app.log',
+                        filemode='w+', level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(name)s - %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
 
 
-def analyseValue(algo_dec: Dict[str, pd.DataFrame], iniState: State, prob: Probabilities, states: Dict[str, State]):
+
+def analyseValue(algo_dec: Dict[str, pd.DataFrame], iniState: State, prob: Probabilities, states: Dict[str, State], param):
     results = pd.DataFrame(columns=["Algorithm", "Scenario", "Value"])
     scenario_runs = []
 
     np.random.seed(1997)
 
     # Derive scenarios (Dict[int, pd.DataFrame (Exog info)])
-    scen_exo = createScenarios(prob)
-
+    scen_exo = createScenarios(prob, param["T"], param["trip_max"])
 
     for algo, dec in algo_dec.items():
         scenario_runs = []
 
         for scen, exo in scen_exo.items():
             logging.info("%s - %d" % (algo, scen))
-            res = runScen(algo, scen, dec, exo.copy(), iniState, states)
+            res = runScen(algo, scen, dec, exo.copy(), iniState, states, param)
             results.loc[len(results.index)] = [algo, scen, res[0]]
             scenario_runs += [res[1]]
         
         con = pd.concat(scenario_runs)
-        con.to_excel("/usr/app/output/xlsx/%s_scenarios.xlsx" % algo)
-        con.to_pickle("/usr/app/output/df/%s_scenarios.pkl" % algo)
-
+        con.to_excel("/usr/app/output/xlsx/[%s-%s]-%s_scenarios.xlsx" % (param["T"], param["trip_max"], algo))
+        con.to_pickle("/usr/app/output/xlsx/[%s-%s]-%s_scenarios.pkl" % (param["T"], param["trip_max"], algo))
 
     # Generate pkl and excel and store away
-    results.to_excel("/usr/app/output/xlsx/value_comp.xlsx")
-    results.to_pickle("/usr/app/output/df/value_comp.pkl")
+    results.to_excel("/usr/app/output/xlsx/[%s-%s]-value_comp.xlsx" % (param["T"], param["trip_max"]))
+    results.to_pickle("/usr/app/output/xlsx/[%s-%s]-value_comp.pkl" % (param["T"], param["trip_max"]))
 
     return results
 
-def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, iniState: str, states: Dict[str, State]) -> Tuple[float, pd.DataFrame]:
+def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, iniState: str, states: Dict[str, State], param) -> Tuple[float, pd.DataFrame]:
     details = pd.DataFrame(columns=["Algorithm", "Scenario", "t", "smpl", "State",  "B_L",
                             "V_TA ", "D", "P_B",  "P_S", "Decision", "xG2V", "xV2G", "xTrip", "Contribution"])
     cState = iniState
@@ -59,13 +61,13 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
         cState = iniState
         cStateObj = states[iniState]
 
-        for t in np.arange(0,con.T):
+        for t in np.arange(0,param["T"]):
             logging.info("%d - %d" % (i, t))
             # Slice exog on smpls
             exo = exog.loc[exog.smpl == i, :].copy()
 
             # Get decision
-            dec_ls = decisions.loc[decisions.s_key == cState, "d_key"].values[0].split(",")
+            dec_ls = str(decisions.loc[decisions.s_key == cState, "d_key"].values[0]).split(",")
             dec = Decision(float(dec_ls[0]), float(dec_ls[1]), int(dec_ls[2]))
 
             # Derive and store contributon
@@ -78,21 +80,21 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
 
             # Perform transition to new state
             cState = performTransition(cStateObj, dec, exo.loc[(exo.t == t), "trpln"].iloc[0], exo.loc[(exo.t == t), "prc_b"].iloc[0], exo.loc[(exo.t == t), "prc_s"].iloc[0]).getKey()
-            if t < con.T - 1:
+            if t < param["T"] - 1:
                 cStateObj = states[cState]
 
             
 
     return (details.loc[:, "Contribution"].sum()/iterations, details)
 
-def createScenarios(prob: Probabilities) -> Dict[int, pd.DataFrame]:
+def createScenarios(prob: Probabilities, t_horizon, trip_max) -> Dict[int, pd.DataFrame]:
     s1 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s"])
     s2 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s"])
     s3 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s"])
 
-    for t in np.arange(con.T):
+    for t in np.arange(t_horizon):
         p = prob.getProbabilities(t*con.tau*60)
-        p = p.loc[(p.p > 0.0) & (p.trpln <= con.trip_max)].reset_index()
+        p = p.loc[(p.p > 0.0) & (p.trpln <= trip_max)].reset_index()
         p.p = p.p.astype(float)
 
         # Most likely
@@ -114,7 +116,7 @@ def createScenarios(prob: Probabilities) -> Dict[int, pd.DataFrame]:
     s2.t = s2.t/int(60*con.tau)
     s3.t = s3.t/int(60*con.tau)
 
-    return {0: s1, 1: s2, 2: s3}
+    return {0: s2, 1: s1, 2: s3}
 
 
 
