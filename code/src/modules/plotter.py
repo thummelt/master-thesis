@@ -15,9 +15,13 @@ def formatPlot(g, xlabel, ylabel, title,xticks=None,dense=None,legend_t = None, 
         g.set(xticks=xticks)
 
     if dense is not None:
-        for i, ax in enumerate(np.array(g.axes.flat)):
-            labels = list(ax.get_xticklabels())
-            ax.set_xticklabels([b if i%dense == 0 else "" for i,b in enumerate(labels)], rotation=40, ha="right")
+        try:
+            for i, ax in enumerate(np.array(g.axes.flat)):
+                labels = list(ax.get_xticklabels())
+                ax.set_xticklabels([b if i%dense == 0 else "" for i,b in enumerate(labels)], rotation=40, ha="right")
+        except:
+            labels = list(g.get_xticklabels())
+            g.set_xticklabels([b if i%dense == 0 else "" for i,b in enumerate(labels)], rotation=40, ha="right")
         
     
     if yticks is not None:
@@ -28,8 +32,22 @@ def formatPlot(g, xlabel, ylabel, title,xticks=None,dense=None,legend_t = None, 
     plt.title(title)
 
     if legend_t is not None:
-        print(2)
         plt.legend(title=legend_t, loc=legend_loc, labels=legend_opt)
+        leg = g.get_legend()
+        for i,v in enumerate(leg.legendHandles):
+            leg.legendHandles[i].set_color(plt.rcParams['axes.prop_cycle'].by_key()['color'][len(leg.legendHandles)-1-i])
+    
+
+def change_width(ax, new_value) :
+    for patch in ax.patches :
+        current_width = patch.get_width()
+        diff = current_width - new_value
+
+        # we change the bar width
+        patch.set_width(new_value)
+
+        # we recenter the bar
+        patch.set_x(patch.get_x() + diff * .5)
 
 
 
