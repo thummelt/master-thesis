@@ -57,10 +57,10 @@ class App:
     def putout(self):
         self.an.putout(self.algo)
          
-    def run(self, T = None, trip_max = None, algo: str = "adp", params: Tuple = None):
+    def run(self, T = None, trip_max = None, algo: str = "adp", params: Tuple = None, run_nr = 0):
 
         # Create directory
-        self.directory = "/usr/app/output/xlsx/%s/%s/" % (algo, datetime.datetime.now().strftime('%Y%m%d_%H%M'))
+        self.directory = "/usr/app/output/xlsx/%s/%s-%d/" % (algo, datetime.datetime.now().strftime('%Y%m%d'), run_nr)
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
 
