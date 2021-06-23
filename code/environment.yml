@@ -15,3 +15,4 @@ dependencies:
     - openpyxl
     - tqdm
     - SciencePlots
+    - mpl-axes-aligner

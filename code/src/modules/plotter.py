@@ -10,7 +10,7 @@ def save(plts, transparent: bool = False):
         pl[1].savefig('/usr/app/output/graphics/%s.png' % pl[0], transparent=transparent, bbox_inches='tight')
 
 
-def formatPlot(g, xlabel, ylabel, title,xticks=None,dense=None,legend_t = None, legend_opt = None, legend_loc = "upper_left",  yticks = None ):
+def formatPlot(g, xlabel, ylabel, title=None,xticks=None,dense=None,legend_t = None, legend_opt = None, legend_loc = "upper left",  yticks = None ):
     if xticks is not None:
         g.set(xticks=xticks)
 
@@ -18,10 +18,10 @@ def formatPlot(g, xlabel, ylabel, title,xticks=None,dense=None,legend_t = None, 
         try:
             for i, ax in enumerate(np.array(g.axes.flat)):
                 labels = list(ax.get_xticklabels())
-                ax.set_xticklabels([b if i%dense == 0 else "" for i,b in enumerate(labels)], rotation=40, ha="right")
+                ax.set_xticklabels([b if i%dense == 0 else "" for i,b in enumerate(labels)], rotation=0, ha="right")
         except:
             labels = list(g.get_xticklabels())
-            g.set_xticklabels([b if i%dense == 0 else "" for i,b in enumerate(labels)], rotation=40, ha="right")
+            g.set_xticklabels([b if int(i)%dense == 0 else "" for i,b in enumerate(labels)], rotation=0, ha="right")
         
     
     if yticks is not None:
@@ -29,13 +29,14 @@ def formatPlot(g, xlabel, ylabel, title,xticks=None,dense=None,legend_t = None, 
 
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.title(title)
+    if title is not None:
+        plt.title(title)
 
     if legend_t is not None:
         plt.legend(title=legend_t, loc=legend_loc, labels=legend_opt)
         leg = g.get_legend()
         for i,v in enumerate(leg.legendHandles):
-            leg.legendHandles[i].set_color(plt.rcParams['axes.prop_cycle'].by_key()['color'][len(leg.legendHandles)-1-i])
+            leg.legendHandles[i].set_color(plt.rcParams['axes.prop_cycle'].by_key()['color'][i])
     
 
 def change_width(ax, new_value) :
