@@ -58,7 +58,7 @@ def constructStates(params: Tuple = None) -> pd.DataFrame:
     # Create state objects
     # ERROR parallel execution here does not set isTerminal flag somehow :o
     #df["s_obj"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda s: State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S))(s) for s in tqdm(df.itertuples()))
-    df["s_obj"] = [State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S) for s in tqdm(df.itertuples())]
+    df["s_obj"] = [State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S) for s in df.itertuples()]
                     
     df["s_key"] = df["s_obj"].apply(lambda x: x.getKey())
  
@@ -136,7 +136,7 @@ def constructTransition(df: pd.DataFrame) -> str:
 
 def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
     # Construct transition objects and get key of destination state
-    df["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in tqdm(df.itertuples()))
+    df["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in df.itertuples())
 
     logging.debug("DataFrame has %d rows before transition pruning." % len(df))
 

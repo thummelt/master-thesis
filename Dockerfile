@@ -30,4 +30,4 @@ ENV PATH /opt/conda/envs/${CONDA_ENV}/bin:$PATH
 # Expose Port
 EXPOSE 8888
 
-ENTRYPOINT ["jupyter", "notebook", "--ip=0.0.0.0", "--no-browser", "--allow-root"]
+ENTRYPOINT ["jupyter", "notebook", "--ip=0.0.0.0", "--no-browser", "--allow-root", "--NotebookApp.max_buffer_size=12884901888"]

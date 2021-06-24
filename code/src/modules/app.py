@@ -112,7 +112,7 @@ class App:
                 self.df_decisions = pd.read_pickle(dec_space.absolute())
             else:
                 logging.debug("Constructing decision space freshly.")
-                ls_mising_dec = [g.constructDecisions(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"])]
+                ls_mising_dec = [g.constructDecisions(i, df_dec) for i in self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]]
                 self.df_decisions = pd.concat(ls_mising_dec)
                 self.df_decisions.to_pickle("/usr/app/output/df/%s-decisionspace.pkl" % self.key)
             
