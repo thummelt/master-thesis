@@ -140,10 +140,15 @@ def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
 
     logging.debug("DataFrame has %d rows before transition pruning." % len(df))
 
-    # Filter out rows leading to invalid states
-    df.drop(df.index[[not checkState(int(s[0]), float(s[1]), float(s[2]), float(s[3])) for s in df["s_d_key"].apply(lambda s: s.split(","))]], inplace=True)
-
-    logging.debug("DataFrame has %d rows after filtering invalid states." % len(df))
+    #df_chunks = np.array_split(raw_df ,8)
+#
+    #with multiprocessing.Pool(8) as pool:
+    #    processed_df = pd.concat(pool.map(process_df_function, df_chunks), ignore_index=True)
+#
+    ## Filter out rows leading to invalid states
+    #df = df.drop(df.index[[not checkState(int(s[0]), float(s[1]), float(s[2]), float(s[3])) for s in df["s_d_key"].apply(lambda s: s.split(","))]])
+#
+    #logging.debug("DataFrame has %d rows after filtering invalid states." % len(df))
 
     # Filter out rows leading to unknown (=> invalid) destination states
     df = df[df["s_d_key"].isin(states)]

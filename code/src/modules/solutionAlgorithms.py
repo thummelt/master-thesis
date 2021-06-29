@@ -97,7 +97,7 @@ class SolutionAlgorithms:
             "value": list(map(lambda s: s.get_V_N(), filter(lambda s: s.get_isTerminal(), states.values())))},
         ), ignore_index=True)
 
-        best_dec.to_excel("%s/%s-best_decisions.xlsx" % (self.directory, key))
+        #best_dec.to_excel("%s/%s-best_decisions.xlsx" % (self.directory, key))
         best_dec.to_pickle("%s/%s-best_decisions.pkl" % (self.directory, key))
 
 
@@ -141,7 +141,7 @@ class SolutionAlgorithms:
             "value": list(map(lambda s: s.get_V_N(), filter(lambda s: s.get_isTerminal(), states.values())))},
         ), ignore_index=True)
 
-        best_dec.to_excel("%s/%s-best_decisions.xlsx" % (self.directory, key)) 
+        #best_dec.to_excel("%s/%s-best_decisions.xlsx" % (self.directory, key)) 
         best_dec.to_pickle("%s/%s-best_decisions.pkl" % (self.directory, key))
         
 
@@ -231,7 +231,7 @@ class SolutionAlgorithms:
         best_dec = best_dec.append(cont.loc[cont.loc[~cont.s_key.isin(best_dec.s_key)].groupby(["s_key"])["cont"].idxmax(), ["s_key", "d_key"]])
         best_dec["value"] = best_dec["s_key"].apply(lambda s: states[s].get_V_N())
 
-        best_dec.to_excel("%s/%s-best_decisions.xlsx" % (self.directory, key))
+        #best_dec.to_excel("%s/%s-best_decisions.xlsx" % (self.directory, key))
         best_dec.to_pickle("%s/%s-best_decisions.pkl" % (self.directory, key))
 
     
@@ -389,7 +389,7 @@ class SolutionAlgorithms:
         # Values
         best_dec["value"] = best_dec["s_key"].apply(lambda s: states.get(s).get_V_N())
 
-        best_dec.to_excel("%s/%s-best_decisions.xlsx" % (self.directory, key))
+        #best_dec.to_excel("%s/%s-best_decisions.xlsx" % (self.directory, key))
         best_dec.to_pickle("%s/%s-best_decisions.pkl" % (self.directory, key))
 
 

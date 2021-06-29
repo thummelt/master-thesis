@@ -107,7 +107,7 @@ class App:
             #processed_list = Parallel(n_jobs=mp.cpu_count())(delayed(g.constructDecisions)(i, df_dec) for i in tqdm(self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]))
             
             dec_space = Path("/usr/app/output/df/[%d-%d]-decisionspace.pkl" %  (con.T, con.trip_max))
-            if dec_space.is_file():
+            if (dec_space.is_file()) & (False):
                 logging.debug("Reading decision space from disk.")
                 self.df_decisions = pd.read_pickle(dec_space.absolute())
             else:

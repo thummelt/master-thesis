@@ -29,7 +29,7 @@ my: float = 9*tau
 ny: float = 0.2
 
 # Battery capacity in kWh
-beta: float = 5#0
+beta: float = 50
 
 # Max battery level
 beta_max: float = 1*beta

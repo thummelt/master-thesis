@@ -7,6 +7,8 @@ services:
         environment: 
             CONDA_ENV: ma-simulation
             PYTHONPATH: /usr/app/
+            CPU_LIMIT: 4
+            MEM_LIMIT: 32212254720
         volumes:
             - ./code/:/usr/app
         stdin_open: true

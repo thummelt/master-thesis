@@ -16,3 +16,6 @@ dependencies:
     - tqdm
     - SciencePlots
     - mpl-axes-aligner
+    - jupyter-resource-usage
+    - jupyter_contrib_nbextensions
+    - nbresuse
