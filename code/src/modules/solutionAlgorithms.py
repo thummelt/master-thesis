@@ -126,23 +126,26 @@ class SolutionAlgorithms:
         best_dec = pd.DataFrame(columns=["s_key", "d_key", "value"])
 
         # Select max contrivution per state (decision with best contribution)
-        max_con = cont.groupby(["s_key"])["cont"].max()
+        #max_con = cont.groupby(["s_key"])["cont"].max()
 
         # Store best decision
         best_dec = cont.loc[cont.groupby(["s_key"])["cont"].idxmax(), ["s_key", "d_key"]]
 
         # Update state values as sum of total_contributions
-        for s, v in max_con.items():
-            states[s].set_V_N(v)
+        #for s, v in max_con.items():
+        #    states[s].set_V_N(v)
 
-        best_dec["value"] = best_dec["s_key"].apply(lambda s: states[s].get_V_N())
-        best_dec = best_dec.append(pd.DataFrame({
-            "s_key": list(map(lambda s: s.getKey(), filter(lambda s: s.get_isTerminal(), states.values()))),
-            "value": list(map(lambda s: s.get_V_N(), filter(lambda s: s.get_isTerminal(), states.values())))},
-        ), ignore_index=True)
+        #best_dec["value"] = best_dec["s_key"].apply(lambda s: states[s].get_V_N())
+        #best_dec = best_dec.append(pd.DataFrame({
+        #    "s_key": list(map(lambda s: s.getKey(), filter(lambda s: s.get_isTerminal(), states.values()))),
+        #    "value": list(map(lambda s: s.get_V_N(), filter(lambda s: s.get_isTerminal(), states.values())))},
+        #), ignore_index=True)
 
         #best_dec.to_excel("%s/%s-best_decisions.xlsx" % (self.directory, key)) 
-        best_dec.to_pickle("%s/%s-best_decisions.pkl" % (self.directory, key))
+        if key != "":
+            best_dec.to_pickle("%s/%s-best_decisions.pkl" % (self.directory, key))
+
+        return best_dec
         
 
     def performApproxVI(self, df: pd.DataFrame, states: Dict[str, State], p: Probabilities, iniState: str, n: int, samples: int = 20, key: str = ""):

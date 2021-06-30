@@ -3,7 +3,8 @@ from src.modules.state import State
 from src.modules.decision import Decision
 from src.modules.transition import Transition, performTransition
 from src.modules.probabilities import Probabilities
-
+from src.modules.solutionAlgorithms import SolutionAlgorithms
+from src.modules import generator as g
 from src.modules import constants as con
 
 
@@ -54,6 +55,7 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
     cState = iniState
     cStateObj = states[iniState]
 
+
     iterations = exog["smpl"].max()
 
     for i in np.arange(1, iterations+1):
@@ -67,7 +69,27 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
             exo = exog.loc[exog.smpl == i, :].copy()
 
             # Get decision
-            dec_ls = str(decisions.loc[decisions.s_key == cState, "d_key"].values[0]).split(",")
+            if algo == "mo":
+                # Get decision freshly for current state
+                decs = g.constructDecisions(states[cState],  g.decisionSpace())
+                decs["s_obj"] = states[cState]
+                decs["t"] = decs["s_obj"].apply(lambda s: s.get_t())
+
+                decs["cont"] = decs["s_obj"].apply(lambda s: s.get_P_S())*con.eta*decs["d_obj"].apply(lambda d: d.get_x_V2G()) \
+                - decs["s_obj"].apply(lambda s: s.get_P_B())*con.eta * decs["d_obj"].apply(lambda d: d.get_x_G2V()) \
+                - con.epsilon * \
+                decs["s_obj"].apply(lambda s: s.get_D()) * \
+                decs["d_obj"].apply(lambda d: 1-d.get_x_t())
+
+                decs["cont"] = decs["cont"].astype(float)
+
+                # Store best decision
+                best_dec = decs.loc[decs.groupby(["s_key"])["cont"].idxmax(), ["d_key"]]
+                dec_ls = str(best_dec.values[0]).split(",")
+
+            else:
+                dec_ls = str(decisions.loc[decisions.s_key == cState, "d_key"].values[0]).split(",")
+            
             dec = Decision(float(dec_ls[0]), float(dec_ls[1]), int(dec_ls[2]))
 
             # Derive and store contributon
@@ -130,6 +152,7 @@ class Analysis:
     stateSpace = None
     decisionSpace = None
     totalSpace = None
+
 
     allVar = []
 
