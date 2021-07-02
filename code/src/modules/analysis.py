@@ -3,7 +3,6 @@ from src.modules.state import State
 from src.modules.decision import Decision
 from src.modules.transition import Transition, performTransition
 from src.modules.probabilities import Probabilities
-from src.modules.solutionAlgorithms import SolutionAlgorithms
 from src.modules import generator as g
 from src.modules import constants as con
 
@@ -25,6 +24,9 @@ def analyseValue(algo_dec: Dict[str, pd.DataFrame], iniState: State, prob: Proba
     results = pd.DataFrame(columns=["Algorithm", "Scenario", "Value"])
     scenario_runs = []
 
+    con.T = param["T"]
+    con.trip_max  = param["trip_max"]
+
     np.random.seed(1997)
 
     # Derive scenarios (Dict[int, pd.DataFrame (Exog info)])
@@ -39,9 +41,9 @@ def analyseValue(algo_dec: Dict[str, pd.DataFrame], iniState: State, prob: Proba
             results.loc[len(results.index)] = [algo, scen, res[0]]
             scenario_runs += [res[1]]
         
-        con = pd.concat(scenario_runs)
-        con.to_excel("/usr/app/output/xlsx/[%s-%s]-%s_scenarios.xlsx" % (param["T"], param["trip_max"], algo))
-        con.to_pickle("/usr/app/output/xlsx/[%s-%s]-%s_scenarios.pkl" % (param["T"], param["trip_max"], algo))
+        cont = pd.concat(scenario_runs)
+        cont.to_excel("/usr/app/output/xlsx/[%s-%s]-%s_scenarios.xlsx" % (param["T"], param["trip_max"], algo))
+        cont.to_pickle("/usr/app/output/xlsx/[%s-%s]-%s_scenarios.pkl" % (param["T"], param["trip_max"], algo))
 
     # Generate pkl and excel and store away
     results.to_excel("/usr/app/output/xlsx/[%s-%s]-value_comp.xlsx" % (param["T"], param["trip_max"]))
@@ -54,6 +56,10 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
                             "V_TA ", "D", "P_B",  "P_S", "Decision", "xG2V", "xV2G", "xTrip", "Contribution"])
     cState = iniState
     cStateObj = states[iniState]
+    
+
+    if algo == "mo":
+        dec_space = g.decisionSpace()
 
 
     iterations = exog["smpl"].max()
@@ -71,7 +77,8 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
             # Get decision
             if algo == "mo":
                 # Get decision freshly for current state
-                decs = g.constructDecisions(states[cState],  g.decisionSpace())
+                decs = g.constructDecisions(states[cState],  dec_space.copy())
+                
                 decs["s_obj"] = states[cState]
                 decs["t"] = decs["s_obj"].apply(lambda s: s.get_t())
 
@@ -84,8 +91,8 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
                 decs["cont"] = decs["cont"].astype(float)
 
                 # Store best decision
-                best_dec = decs.loc[decs.groupby(["s_key"])["cont"].idxmax(), ["d_key"]]
-                dec_ls = str(best_dec.values[0]).split(",")
+                best_dec = str(decs.loc[decs.groupby(["s_key"])["cont"].idxmax(), "d_key"].values[0])
+                dec_ls = best_dec.split(",")
 
             else:
                 dec_ls = str(decisions.loc[decisions.s_key == cState, "d_key"].values[0]).split(",")

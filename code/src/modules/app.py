@@ -56,7 +56,15 @@ class App:
 
     def putout(self):
         self.an.putout(self.algo)
-         
+
+    def constructStates(self, T, trip_max, params):
+        con.T = T
+        con.trip_max = trip_max
+        key = "[%d-%d]" % (T, trip_max)
+        df_states = g.constructStates(params)
+        df_states.set_index("s_key", inplace=True, drop=True)        
+        df_states.to_pickle("/usr/app/output/df/%s-statespace.pkl" % key)
+
     def run(self, T = None, trip_max = None, algo: str = "adp", params: Tuple = None, run_nr = 0):
 
         # Create directory
@@ -93,7 +101,7 @@ class App:
             self.splittime += [time.time()-self.starttime]
             self.an.addMeasure(self.key, [con.T, con.trip_max, len(self.df_states.index)], "sspace")
 
-        self.df_states.to_pickle("/usr/app/output/df/%s-statespace.pkl" % self.key)
+        #self.df_states.to_pickle("/usr/app/output/df/%s-statespace.pkl" % self.key)
 
         logging.info("Finished creation of %d states" % len(self.df_states))
 
@@ -114,7 +122,7 @@ class App:
                 logging.debug("Constructing decision space freshly.")
                 ls_mising_dec = [g.constructDecisions(i, df_dec) for i in self.df_states.loc[self.df_states["s_obj"].apply(lambda s: not s.get_isTerminal()),"s_obj"]]
                 self.df_decisions = pd.concat(ls_mising_dec)
-                self.df_decisions.to_pickle("/usr/app/output/df/%s-decisionspace.pkl" % self.key)
+                #self.df_decisions.to_pickle("/usr/app/output/df/%s-decisionspace.pkl" % self.key)
             
 
             if algo == "vi":

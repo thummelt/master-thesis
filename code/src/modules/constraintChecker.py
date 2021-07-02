@@ -58,7 +58,7 @@ def checkDecision(s: State, x: Decision) -> bool:
     if not(round(s.t + x.get_x_t()*math.ceil(s.get_D()/con.gamma/con.tau), 0) <= con.T):
         code += [9]
 
-    # if s.getKey() == '1,2.8,0.0,0.0,0.046,0.036':
+    #if s.getKey() == '0,4.0,0.0,0.0,0.044,0.039':
     #    print(x.getKey() + str(list(filter(lambda c: c > 0, code))))
 
     # if (s.getKey() == '1,2.8,0.0,0.0,0.046,0.036') & (x.get_x_V2G() >= 1.1):

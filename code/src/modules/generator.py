@@ -52,13 +52,27 @@ def constructStates(params: Tuple = None) -> pd.DataFrame:
 
     df.drop_duplicates(ignore_index=True, inplace=True)
 
-    # Filter out invalid states
-    df.drop(df.index[[not checkState(s.t, s.B_L, s.V_TA, s.D) for s in df.itertuples()]], inplace=True)
+    # Filter out invalid states for t== 0 and t==T
+    logging.debug("Created Cross Product. Filtering state space")
+    df_check = df.loc[(df["t"] > 0) & (df["t"] < con.T),:].reset_index(drop=True)
+    df_filter = df.loc[(df["t"]  == 0) | (df["t"]  == con.T),:].reset_index(drop=True)
+    df_filter.drop(df_filter.index[[not checkState(s.t, s.B_L, s.V_TA, s.D) for s in df_filter.itertuples()]], inplace=True)
+
+    df = pd.concat([df_check, df_filter])
 
     # Create state objects
     # ERROR parallel execution here does not set isTerminal flag somehow :o
     #df["s_obj"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda s: State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S))(s) for s in tqdm(df.itertuples()))
-    df["s_obj"] = [State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S) for s in df.itertuples()]
+    #logging.debug("Create state objects in chunks for %d states" % len(df))
+    dfs = []
+    for k,g in df.groupby(np.arange(len(df))//10000000):
+        #logging.debug("Chunk progress %d/%d" % (k*10000000, len(df)))
+        g["s_obj"] = [State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S) for s in g.itertuples()]
+        dfs += [g]
+    df = pd.concat(dfs)
+    #logging.debug("Finished state objects in chunks resulting in %d states" % len(df))
+
+    #df["s_obj"] = [State(s.t, s.B_L, s.V_TA, s.D, s.P_B, s.P_S) for s in df.itertuples()]
                     
     df["s_key"] = df["s_obj"].apply(lambda x: x.getKey())
  
@@ -83,8 +97,17 @@ def decisionSpace() -> pd.DataFrame:
     df.drop_duplicates(ignore_index=True, inplace=True)
 
     # Create decision objects
-    df["d_obj"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda a: Decision(a.x_G2V, a.x_V2G, a.x_trip))(a) for a in df.itertuples())
+    #df["d_obj"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda a: Decision(a.x_G2V, a.x_V2G, a.x_trip))(a) for a in df.itertuples())
     #[Decision(a.x_G2V, a.x_V2G, a.x_trip) for a in tqdm(df.itertuples())] 
+    #logging.debug("Create dec objects in chunks for %d decisions" % len(df))
+    dfs = []
+    for k,g in df.groupby(np.arange(len(df))//10000000):
+        #logging.debug("Chunk progress %d/%d" % (k*1000000, len(df)))
+        g["d_obj"] = [Decision(a.x_G2V, a.x_V2G, a.x_trip) for a in g.itertuples()]
+        dfs += [g]
+    df = pd.concat(dfs)
+    #logging.debug("Finished decision objects in chunks resulting in %d decisions" % len(df))
+    
     df["d_key"] = df["d_obj"].apply(lambda x: x.getKey())
 
     return df
@@ -93,9 +116,17 @@ def constructDecisions(s:State, df_c: pd.DataFrame) -> pd.DataFrame:
 
     # Filter on y_t
     df = df_c[df_c["x_trip"].apply(lambda x_t: False if (s.getY() == 1) & (x_t == 1) else True)].copy().reset_index()
-
+    
     # Filter out invalid decisions
-    df.drop(df.index[[not checkDecision(s, d.d_obj) for d in df.itertuples()]], inplace=True)
+    #df.drop(df.index[[not checkDecision(s, d.d_obj) for d in df.itertuples()]], inplace=True)
+    #logging.debug("Filtering dec objects in chunks for %d decisions" % len(df))
+    dfs = []
+    for k,g in df.groupby(np.arange(len(df))//10000000):
+        #logging.debug("Chunk progress %d/%d" % (k*1000000, len(df)))
+        g.drop(g.index[[not checkDecision(s, d.d_obj) for d in g.itertuples()]], inplace=True)
+        dfs += [g]
+    df = pd.concat(dfs)
+    #logging.debug("Finished filtering decision objects in chunks resulting in %d decisions" % len(df))
 
     df["s_key"] = s.getKey()
 
@@ -136,7 +167,13 @@ def constructTransition(df: pd.DataFrame) -> str:
 
 def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
     # Construct transition objects and get key of destination state
-    df["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in df.itertuples())
+    #df["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in df.itertuples())
+    dfs = []
+    for k,g in df.groupby(np.arange(len(df))//100000000):
+        #logging.debug("Chunk progress %d/%d" % (k*1000000, len(df)))
+        g["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in g.itertuples())
+        dfs += [g]
+    df = pd.concat(dfs)
 
     logging.debug("DataFrame has %d rows before transition pruning." % len(df))
 
