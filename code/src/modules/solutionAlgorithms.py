@@ -318,7 +318,7 @@ class SolutionAlgorithms:
                 best_dec = pd.concat([best_dec[~best_dec.s_key.isin(tmp.s_key)], tmp])
 
                 # Update state value
-                states[cState].set_V_N(max_con.loc[cState])
+                states[cState].set_V_N_AVI(max_con.loc[cState])
 
                 # Perform transition to next state
                 logging.debug("Best decision for state %s is  %s" % (cState, best_dec.loc[best_dec.s_key == cState, "d_key"].iloc[0]))
@@ -344,56 +344,61 @@ class SolutionAlgorithms:
 
         # Add all non-visited states to df with myopic decision
         df_st.reset_index(inplace=True)
-        
-        
-
-        dec_space = Path("/usr/app/output/df/[%d-%d]-decisionspace.pkl" %  (con.T, con.trip_max))
-        if dec_space.is_file():
-            logging.debug("Reading decision space from disk.")
-            df_missing_dec = pd.read_pickle(dec_space.absolute())
-            # Need to prune loaded decisions. No decision constructed for t = 0 as we have initial state - not for terminal nodes - only for states without decision
-            df_missing_dec = df_missing_dec.loc[(~df_missing_dec.s_key.isin(best_dec.s_key)) & (df_missing_dec.s_key.isin(df_st.s_key))]
-            df_missing_dec = df_missing_dec.loc[(df_missing_dec.s_key.apply(lambda s: (states[s].get_t() != 0) & (not states[s].get_isTerminal())))]
-        else:
-            logging.debug("Constructing decision space freshly.")
-            ls_mising_dec = [g.constructDecisions(states[s], df_dec) for s in df_st.loc[(~df_st.s_key.isin(best_dec.s_key)) & (df_st.s_obj.apply(lambda s: not s.get_isTerminal())), "s_key"]]
-            df_missing_dec = pd.concat(ls_mising_dec)
-            df_missing_dec.to_pickle("/usr/app/output/df/[%d-%d]-decisionspace.pkl" %  (con.T, con.trip_max))
-
-        logging.info("Start to run myopic optimization for %d state with valid decisions of %d missing of %d total states" % (len(df_missing_dec.s_key.unique()), len(df_st.loc[~df_st.s_key.isin(best_dec.s_key)]), len(df_st.index)))
-
-        # Begin myopic decision making 
-        cont_missing_dec = df_missing_dec.copy().reset_index()
-        cont_missing_dec["s_obj"] =  cont_missing_dec["s_key"].apply(lambda s: states[s])
-        cont_missing_dec["cont"] = cont_missing_dec["s_obj"].apply(lambda s: s.get_P_S())*con.eta*cont_missing_dec["d_obj"].apply(lambda d: d.get_x_V2G()) \
-            - cont_missing_dec["s_obj"].apply(lambda s: s.get_P_B())*con.eta * cont_missing_dec["d_obj"].apply(lambda d: d.get_x_G2V()) \
-            - con.epsilon * \
-            cont_missing_dec["s_obj"].apply(lambda s: s.get_D()) * \
-            cont_missing_dec["d_obj"].apply(lambda d: 1-d.get_x_t())
-
-        cont_missing_dec["cont"] = cont_missing_dec["cont"].astype(float)
-
-        # Select max contrivution per state (decision with best contribution)
-        max_con_missing_dec = cont_missing_dec.groupby(["s_key"])["cont"].max()
-
-        # Store best decision
-        df_missing_dec = cont_missing_dec.loc[cont_missing_dec.groupby(["s_key"])["cont"].idxmax(), ["s_key", "d_key"]]
-
-        # Update state values as sum of total_contributions
-        for s, v in max_con_missing_dec.items():
-            states[s].set_V_N(v)
+        #
+        #
+#
+        #dec_space = Path("/usr/app/output/df/[%d-%d]-decisionspace.pkl" %  (con.T, con.trip_max))
+        #if dec_space.is_file():
+        #    logging.debug("Reading decision space from disk.")
+        #    df_missing_dec = pd.read_pickle(dec_space.absolute())
+        #    # Need to prune loaded decisions. No decision constructed for t = 0 as we have initial state - not for terminal nodes - only for states without decision
+        #    df_missing_dec = df_missing_dec.loc[(~df_missing_dec.s_key.isin(best_dec.s_key)) & (df_missing_dec.s_key.isin(df_st.s_key))]
+        #    df_missing_dec = df_missing_dec.loc[(df_missing_dec.s_key.apply(lambda s: (states[s].get_t() != 0) & (not states[s].get_isTerminal())))]
+        #else:
+        #    logging.debug("Constructing decision space freshly.")
+        #    ls_mising_dec = [g.constructDecisions(states[s], df_dec) for s in df_st.loc[(~df_st.s_key.isin(best_dec.s_key)) & (df_st.s_obj.apply(lambda s: not s.get_isTerminal())), "s_key"]]
+        #    df_missing_dec = pd.concat(ls_mising_dec)
+        #    df_missing_dec.to_pickle("/usr/app/output/df/[%d-%d]-decisionspace.pkl" %  (con.T, con.trip_max))
+#
+        #logging.info("Start to run myopic optimization for %d state with valid decisions of %d missing of %d total states" % (len(df_missing_dec.s_key.unique()), len(df_st.loc[~df_st.s_key.isin(best_dec.s_key)]), len(df_st.index)))
+#
+        ## Begin myopic decision making 
+        #cont_missing_dec = df_missing_dec.copy().reset_index()
+        #cont_missing_dec["s_obj"] =  cont_missing_dec["s_key"].apply(lambda s: states[s])
+        #cont_missing_dec["cont"] = cont_missing_dec["s_obj"].apply(lambda s: s.get_P_S())*con.eta*cont_missing_dec["d_obj"].apply(lambda d: d.get_x_V2G()) \
+        #    - cont_missing_dec["s_obj"].apply(lambda s: s.get_P_B())*con.eta * cont_missing_dec["d_obj"].apply(lambda d: d.get_x_G2V()) \
+        #    - con.epsilon * \
+        #    cont_missing_dec["s_obj"].apply(lambda s: s.get_D()) * \
+        #    cont_missing_dec["d_obj"].apply(lambda d: 1-d.get_x_t())
+#
+        #cont_missing_dec["cont"] = cont_missing_dec["cont"].astype(float)
+#
+        ## Select max contrivution per state (decision with best contribution)
+        #max_con_missing_dec = cont_missing_dec.groupby(["s_key"])["cont"].max()
+#
+        ## Store best decision
+        #df_missing_dec = cont_missing_dec.loc[cont_missing_dec.groupby(["s_key"])["cont"].idxmax(), ["s_key", "d_key"]]
+#
+        ## Update state values as sum of total_contributions
+        #for s, v in max_con_missing_dec.items():
+        #    states[s].set_V_N(v)
 
         # End myopic decision making
 
         # Add all remaining (terminal) states
-        best_dec = pd.concat([best_dec, df_missing_dec])
-        best_dec = pd.concat([best_dec, pd.DataFrame({"s_key": df_st.loc[df_st.s_obj.apply(lambda s: s.get_isTerminal()), "s_key"]})]).reset_index(drop=True)
+        #best_dec = pd.concat([best_dec, df_missing_dec])
+        #best_dec = pd.concat([best_dec, pd.DataFrame({"s_key": df_st.loc[df_st.s_obj.apply(lambda s: s.get_isTerminal()), "s_key"]})]).reset_index(drop=True)
 
         # Values
-        best_dec["value"] = best_dec["s_key"].apply(lambda s: states.get(s).get_V_N())
+        #best_dec["value"] = best_dec["s_key"].apply(lambda s: states.get(s).get_V_N())
 
         #best_dec.to_excel("%s/%s-best_decisions.xlsx" % (self.directory, key))
-        best_dec.to_pickle("%s/%s-best_decisions.pkl" % (self.directory, key))
+        #best_dec.to_pickle("%s/%s-best_decisions.pkl" % (self.directory, key))
+
+        # Values
+        df_st["value"] = df_st["s_key"].apply(lambda s: states.get(s).get_V_N())
+
+        df_st.to_pickle("%s/%s-lookup.pkl" % (self.directory, key))
 
 
 
