@@ -121,7 +121,7 @@ def constructDecisions(s:State, df_c: pd.DataFrame) -> pd.DataFrame:
     #df.drop(df.index[[not checkDecision(s, d.d_obj) for d in df.itertuples()]], inplace=True)
     #logging.debug("Filtering dec objects in chunks for %d decisions" % len(df))
     dfs = []
-    for k,g in df.groupby(np.arange(len(df))//10000000):
+    for k,g in df.groupby(np.arange(len(df))//1000000):
         #logging.debug("Chunk progress %d/%d" % (k*1000000, len(df)))
         g.drop(g.index[[not checkDecision(s, d.d_obj) for d in g.itertuples()]], inplace=True)
         dfs += [g]
@@ -169,7 +169,7 @@ def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
     # Construct transition objects and get key of destination state
     #df["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in df.itertuples())
     dfs = []
-    for k,g in df.groupby(np.arange(len(df))//100000000):
+    for k,g in df.groupby(np.arange(len(df))//1000000):
         #logging.debug("Chunk progress %d/%d" % (k*1000000, len(df)))
         g["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in g.itertuples())
         dfs += [g]
