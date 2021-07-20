@@ -169,13 +169,13 @@ def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
     # Construct transition objects and get key of destination state
     #df["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in df.itertuples())
     dfs = []
-    for k,g in df.groupby(np.arange(len(df))//1000000):
+    for k,g in df.groupby(np.arange(len(df))//1000000): 
         #logging.debug("Chunk progress %d/%d" % (k*1000000, len(df)))
         g["s_d_key"] = Parallel(n_jobs=mp.cpu_count())(delayed(lambda t: performTransition(t.s_obj, t.d_obj, t.trpln, t.prc_b, t.prc_s).getKey())(t) for t in g.itertuples())
         dfs += [g]
     df = pd.concat(dfs)
 
-    logging.debug("DataFrame has %d rows before transition pruning." % len(df))
+    #logging.debug("DataFrame has %d rows before transition pruning." % len(df))
 
     #df_chunks = np.array_split(raw_df ,8)
 #
@@ -190,6 +190,6 @@ def constructTransitions(df:pd.DataFrame, states: List) -> pd.DataFrame:
     # Filter out rows leading to unknown (=> invalid) destination states
     df = df[df["s_d_key"].isin(states)]
     
-    logging.debug("DataFrame has %d rows after transition pruning." % len(df))
+    #logging.debug("DataFrame has %d rows after transition pruning." % len(df))
 
     return df.copy()

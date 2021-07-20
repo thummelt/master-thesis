@@ -273,8 +273,11 @@ class SolutionAlgorithms:
             cState = iniState
 
             iterationCounter += 1
-            logging.debug("Current iteration %d of %d" % (iterationCounter, n))
-            print("%d/%d" % (iterationCounter, n))
+            #logging.debug("Current iteration %d of %d" % (iterationCounter, n))
+            #print("%d/%d" % (iterationCounter, n))
+            if iterationCounter %200 == 0:
+                print("%d/%d" % (iterationCounter, n))
+                logging.debug("Current iteration %d of %d" % (iterationCounter, n))
 
             # Loop over all time slices
             for t in np.arange(0, con.T):
@@ -321,7 +324,7 @@ class SolutionAlgorithms:
                 states[cState].set_V_N_AVI(max_con.loc[cState])
 
                 # Perform transition to next state
-                logging.debug("Best decision for state %s is  %s" % (cState, best_dec.loc[best_dec.s_key == cState, "d_key"].iloc[0]))
+                #logging.debug("Best decision for state %s is  %s" % (cState, best_dec.loc[best_dec.s_key == cState, "d_key"].iloc[0]))
 
                 df_best_dec = df_trans.loc[(df_trans.s_key == cState) & (df_trans.d_key == best_dec.loc[best_dec.s_key == cState, "d_key"].iloc[0])].reset_index(drop=True)
                 #df_best_dec.to_excel("%s/adp_df3_%s.xlsx" % (self.directory, str(iterationCounter)))
@@ -333,8 +336,8 @@ class SolutionAlgorithms:
                 trans = df_best_dec.loc[np.random.choice(np.arange(0, len(df_best_dec.index)), size = 1, p = probs),:]
                 cState = trans["s_d_key"].iloc[0]
 
-                logging.debug("Choosing randomly the following transition %s with probability %f" % (trans[["trpstrt", "trpln", "prc_b", "prc_s"]].to_string(), trans["p"]))
-                logging.debug("Next state is %s" % cState)
+                #logging.debug("Choosing randomly the following transition %s with probability %f" % (trans[["trpstrt", "trpln", "prc_b", "prc_s"]].to_string(), trans["p"]))
+                #logging.debug("Next state is %s" % cState)
 
                 # End inner t loop
             
