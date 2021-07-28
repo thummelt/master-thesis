@@ -6,8 +6,8 @@ import numpy as np
 def save(plts, transparent: bool = False):
     # Export plots
     for pl in plts:
-        pl[1].savefig('/usr/app/output/graphics/%s.svg' % pl[0], transparent=transparent, bbox_inches='tight')
-        pl[1].savefig('/usr/app/output/graphics/%s.png' % pl[0], transparent=transparent, bbox_inches='tight')
+        pl[1].savefig('/usr/app/output/graphics/%s.svg' % pl[0], transparent=transparent, bbox_inches='tight',format='svg', dpi=600)
+        pl[1].savefig('/usr/app/output/graphics/%s.png' % pl[0], transparent=transparent, bbox_inches='tight',format='png', dpi=600)
 
 
 def formatPlot(g, xlabel, ylabel, title=None,xticks=None,dense=None,legend_t = None, legend_opt = None, legend_loc = "upper left",  yticks = None ):
@@ -30,7 +30,8 @@ def formatPlot(g, xlabel, ylabel, title=None,xticks=None,dense=None,legend_t = N
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     if title is not None:
-        plt.title(title)
+        pass
+        #plt.title(title)
 
     if legend_t is not None:
         plt.legend(title=legend_t, loc=legend_loc, labels=legend_opt)

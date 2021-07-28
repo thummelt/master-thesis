@@ -20,7 +20,7 @@ logging.basicConfig(filename="logs" + '/' + datetime.now().strftime('%Y%m%d_%H%M
 
 
 
-def analyseValue(algo_dec: Dict[str, pd.DataFrame], iniState: State, prob: Probabilities, states: Dict[str, State], param):
+def analyseValue(algo_lookup: Dict[str, pd.DataFrame], iniState: State, prob: Probabilities, states: Dict[str, State], param):
     results = pd.DataFrame(columns=["Algorithm", "Scenario", "Value"])
     scenario_runs = []
 
@@ -32,14 +32,15 @@ def analyseValue(algo_dec: Dict[str, pd.DataFrame], iniState: State, prob: Proba
     # Derive scenarios (Dict[int, pd.DataFrame (Exog info)])
     scen_exo = createScenarios(prob, param["T"], param["trip_max"])
 
-    for algo, dec in algo_dec.items():
+    for algo, lookup in algo_lookup.items():
         scenario_runs = []
 
         for scen, exo in scen_exo.items():
             logging.info("%s - %d" % (algo, scen))
-            res = runScen(algo, scen, dec, exo.copy(), iniState, states, param)
+            res = runScen(algo, scen, lookup, exo.copy(), iniState, states, param)
             results.loc[len(results.index)] = [algo, scen, res[0]]
             scenario_runs += [res[1]]
+
         
         cont = pd.concat(scenario_runs)
         cont.to_excel("/usr/app/output/xlsx/[%s-%s]-%s_scenarios.xlsx" % (param["T"], param["trip_max"], algo))
@@ -51,52 +52,88 @@ def analyseValue(algo_dec: Dict[str, pd.DataFrame], iniState: State, prob: Proba
 
     return results
 
-def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, iniState: str, states: Dict[str, State], param) -> Tuple[float, pd.DataFrame]:
+def runScen(algo: str, scen: int, lookup: pd.DataFrame, exog: pd.DataFrame, iniState: str, states: Dict[str, State], param) -> Tuple[float, pd.DataFrame]:
     details = pd.DataFrame(columns=["Algorithm", "Scenario", "t", "smpl", "State",  "B_L",
                             "V_TA ", "D", "P_B",  "P_S", "Decision", "xG2V", "xV2G", "xTrip", "Contribution"])
     cState = iniState
     cStateObj = states[iniState]
     
-
-    if algo == "mo":
-        dec_space = g.decisionSpace()
-
+    # Construct decision space
+    dec_space = g.decisionSpace()
 
     iterations = exog["smpl"].max()
 
+    # Start simulation
     for i in np.arange(1, iterations+1):
 
         cState = iniState
         cStateObj = states[iniState]
 
+        # Start looping over all time slices
         for t in np.arange(0,param["T"]):
             logging.info("%d - %d" % (i, t))
             # Slice exog on smpls
             exo = exog.loc[exog.smpl == i, :].copy()
 
-            # Get decision
-            if algo == "mo":
-                # Get decision freshly for current state
-                decs = g.constructDecisions(states[cState],  dec_space.copy())
-                
-                decs["s_obj"] = states[cState]
-                decs["t"] = decs["s_obj"].apply(lambda s: s.get_t())
+            # Derive all valid decisions for current state
+            decs = g.constructDecisions(states[cState],  dec_space.copy())
+            decs["s_obj"] = states[cState]
+            decs["t"] = decs["s_obj"].apply(lambda s: s.get_t())
 
-                decs["cont"] = decs["s_obj"].apply(lambda s: s.get_P_S())*con.eta*decs["d_obj"].apply(lambda d: d.get_x_V2G()) \
+            # Caclulate contribution of state-decision pair
+            decs["cont"] = decs["s_obj"].apply(lambda s: s.get_P_S())*con.eta*decs["d_obj"].apply(lambda d: d.get_x_V2G()) \
                 - decs["s_obj"].apply(lambda s: s.get_P_B())*con.eta * decs["d_obj"].apply(lambda d: d.get_x_G2V()) \
                 - con.epsilon * \
                 decs["s_obj"].apply(lambda s: s.get_D()) * \
                 decs["d_obj"].apply(lambda d: 1-d.get_x_t())
 
-                decs["cont"] = decs["cont"].astype(float)
+            decs["cont"] = decs["cont"].astype(float)
 
-                # Store best decision
+
+
+
+            # Get decision according to policy
+            if algo == "mo":
+                # Get decision freshly for current state by maximizing current contribution over possible decisions                      
                 best_dec = str(decs.loc[decs.groupby(["s_key"])["cont"].idxmax(), "d_key"].values[0])
                 dec_ls = best_dec.split(",")
 
-            else:
-                dec_ls = str(decisions.loc[decisions.s_key == cState, "d_key"].values[0]).split(",")
+            else: # ADP
+                # Slice exo info
+                df_exo = exo.loc[(exo.t == t), :]
+                #print(df_exo)
+
+                if t == param["T"] - 1:
+                    df_exo.loc[df_exo.t == t, "trpln"] = 0.0
+                #print(df_exo)
+
+                df_exo = pd.merge(decs,df_exo, on=["t"])
+               
+ 
+                # Perform transitions
+                df_trans = g.constructTransitions(df_exo, states.keys(), param["T"])
+                #print(df_trans.head(5))
+                
+                # Caclulate expected contribution by using lookup table
+                df_trans["ex_cont"] = df_trans["p"] * df_trans["s_d_key"].apply(lambda s: lookup.loc[lookup.s_key == s,"value"].values[0])
+                #print(df_trans.head(5))
+                
+                # Calculate expected total contribution
+                grp_sum = df_trans[["s_key", "d_key", "ex_cont"]].groupby(["s_key", "d_key"])["ex_cont"].sum().reset_index()
+                #print(grp_sum.head(5))
+                grp_sum = pd.merge(grp_sum, decs[["s_key", "d_key", "cont"]], on=["s_key", "d_key"])
+                #print(grp_sum.head(5))
+                grp_sum["tot_cont"] = grp_sum["cont"] + con.expec*grp_sum["ex_cont"]
+                #print(grp_sum.head(5))
+                
+                # Store/update best decision
+                best_dec = grp_sum.loc[grp_sum[["s_key", "tot_cont"]].groupby(["s_key"])["tot_cont"].idxmax(), ["d_key"]].values[0][0]
+                #print(best_dec)
+                dec_ls = best_dec.split(",")
+                #print(dec_ls)
+
             
+            # Create decision obkect
             dec = Decision(float(dec_ls[0]), float(dec_ls[1]), int(dec_ls[2]))
 
             # Derive and store contributon
@@ -109,6 +146,7 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
 
             # Perform transition to new state
             cState = performTransition(cStateObj, dec, exo.loc[(exo.t == t), "trpln"].iloc[0], exo.loc[(exo.t == t), "prc_b"].iloc[0], exo.loc[(exo.t == t), "prc_s"].iloc[0]).getKey()
+            
             if t < param["T"] - 1:
                 cStateObj = states[cState]
 
@@ -117,9 +155,9 @@ def runScen(algo: str, scen: int, decisions: pd.DataFrame, exog: pd.DataFrame, i
     return (details.loc[:, "Contribution"].sum()/iterations, details)
 
 def createScenarios(prob: Probabilities, t_horizon, trip_max) -> Dict[int, pd.DataFrame]:
-    s1 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s"])
-    s2 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s"])
-    s3 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s"])
+    s1 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s", "p"])
+    s2 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s", "p"])
+    s3 = pd.DataFrame(columns = ["t", "smpl", "trpln", "prc_b", "prc_s", "p"])
 
     for t in np.arange(t_horizon):
         p = prob.getProbabilities(t*con.tau*60)
@@ -127,13 +165,13 @@ def createScenarios(prob: Probabilities, t_horizon, trip_max) -> Dict[int, pd.Da
         p.p = p.p.astype(float)
 
         # Most likely
-        s1.loc[len(s1.index)] = p.iloc[p.p.idxmax()][['t', 'trpln', 'prc_b', 'prc_s']].copy()
+        s1.loc[len(s1.index)] = p.iloc[p.p.idxmax()][['t', 'trpln', 'prc_b', 'prc_s', 'p']].copy()
 
         # Most unlikely (of the ones that could actually be observed)
-        s2.loc[len(s2.index)] = p.iloc[p.p.idxmin()][['t', 'trpln', 'prc_b', 'prc_s']].copy()
+        s2.loc[len(s2.index)] = p.iloc[p.p.idxmin()][['t', 'trpln', 'prc_b', 'prc_s', 'p']].copy()
 
         # 1000 random smpls
-        tmp = p.iloc[np.random.choice(np.arange(0, len(p.index)), size=1000, replace=True, p=np.divide(p["p"], p["p"].sum()))][['t', 'trpln', 'prc_b', 'prc_s']].copy()
+        tmp = p.iloc[np.random.choice(np.arange(0, len(p.index)), size=1000, replace=True, p=np.divide(p["p"], p["p"].sum()))][['t', 'trpln', 'prc_b', 'prc_s','p']].copy()
         tmp["smpl"] = np.arange(tmp.shape[0])+1
         s3 = pd.concat([s3, tmp])
 
