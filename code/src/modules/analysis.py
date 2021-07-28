@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Dict, Tuple
 import numpy as np
 import logging
+import time
 
 # Stores measures and provide evaluation functionality
  
@@ -20,7 +21,7 @@ logging.basicConfig(filename="logs" + '/' + datetime.now().strftime('%Y%m%d_%H%M
 
 
 
-def analyseValue(algo_lookup: Dict[str, pd.DataFrame], iniState: State, prob: Probabilities, states: Dict[str, State], param):
+def analyseValue(algo_lookup: Dict[str, pd.DataFrame], iniState: State, prob: Probabilities, states: pd.DataFrame, param):
     results = pd.DataFrame(columns=["Algorithm", "Scenario", "Value"])
     scenario_runs = []
 
@@ -52,11 +53,11 @@ def analyseValue(algo_lookup: Dict[str, pd.DataFrame], iniState: State, prob: Pr
 
     return results
 
-def runScen(algo: str, scen: int, lookup: pd.DataFrame, exog: pd.DataFrame, iniState: str, states: Dict[str, State], param) -> Tuple[float, pd.DataFrame]:
+def runScen(algo: str, scen: int, lookup: pd.DataFrame, exog: pd.DataFrame, iniState: str, states:pd.DataFrame, param) -> Tuple[float, pd.DataFrame]:
     details = pd.DataFrame(columns=["Algorithm", "Scenario", "t", "smpl", "State",  "B_L",
                             "V_TA ", "D", "P_B",  "P_S", "Decision", "xG2V", "xV2G", "xTrip", "Contribution"])
     cState = iniState
-    cStateObj = states[iniState]
+    cStateObj = states.loc[states.s_key == iniState, "s_obj"].values[0]
     
     # Construct decision space
     dec_space = g.decisionSpace()
@@ -67,7 +68,7 @@ def runScen(algo: str, scen: int, lookup: pd.DataFrame, exog: pd.DataFrame, iniS
     for i in np.arange(1, iterations+1):
 
         cState = iniState
-        cStateObj = states[iniState]
+        cStateObj = states.loc[states.s_key == iniState, "s_obj"].values[0]
 
         # Start looping over all time slices
         for t in np.arange(0,param["T"]):
@@ -76,9 +77,13 @@ def runScen(algo: str, scen: int, lookup: pd.DataFrame, exog: pd.DataFrame, iniS
             exo = exog.loc[exog.smpl == i, :].copy()
 
             # Derive all valid decisions for current state
-            decs = g.constructDecisions(states[cState],  dec_space.copy())
-            decs["s_obj"] = states[cState]
+            s_obj = states.loc[states.s_key == cState, "s_obj"].values[0]
+            decs = g.constructDecisions(s_obj,  dec_space.copy())
+
+
+            decs["s_obj"] = s_obj
             decs["t"] = decs["s_obj"].apply(lambda s: s.get_t())
+
 
             # Caclulate contribution of state-decision pair
             decs["cont"] = decs["s_obj"].apply(lambda s: s.get_P_S())*con.eta*decs["d_obj"].apply(lambda d: d.get_x_V2G()) \
@@ -91,7 +96,6 @@ def runScen(algo: str, scen: int, lookup: pd.DataFrame, exog: pd.DataFrame, iniS
 
 
 
-
             # Get decision according to policy
             if algo == "mo":
                 # Get decision freshly for current state by maximizing current contribution over possible decisions                      
@@ -101,21 +105,26 @@ def runScen(algo: str, scen: int, lookup: pd.DataFrame, exog: pd.DataFrame, iniS
             else: # ADP
                 # Slice exo info
                 df_exo = exo.loc[(exo.t == t), :]
+
                 #print(df_exo)
 
                 if t == param["T"] - 1:
                     df_exo.loc[df_exo.t == t, "trpln"] = 0.0
-                #print(df_exo)
+                
 
                 df_exo = pd.merge(decs,df_exo, on=["t"])
+
                
+                #print(df_exo.head())
  
                 # Perform transitions
-                df_trans = g.constructTransitions(df_exo, states.keys(), param["T"])
+                df_trans = g.constructTransitions(df_exo, states.at[t+1, "s_key"].values)
+
                 #print(df_trans.head(5))
                 
                 # Caclulate expected contribution by using lookup table
-                df_trans["ex_cont"] = df_trans["p"] * df_trans["s_d_key"].apply(lambda s: lookup.loc[lookup.s_key == s,"value"].values[0])
+                df_trans["ex_cont"] = df_trans["p"] * df_trans["s_d_key"].apply(lambda s: lookup.at[s,"value"])
+
                 #print(df_trans.head(5))
                 
                 # Calculate expected total contribution
@@ -131,6 +140,8 @@ def runScen(algo: str, scen: int, lookup: pd.DataFrame, exog: pd.DataFrame, iniS
                 #print(best_dec)
                 dec_ls = best_dec.split(",")
                 #print(dec_ls)
+                
+
 
             
             # Create decision obkect
@@ -148,7 +159,7 @@ def runScen(algo: str, scen: int, lookup: pd.DataFrame, exog: pd.DataFrame, iniS
             cState = performTransition(cStateObj, dec, exo.loc[(exo.t == t), "trpln"].iloc[0], exo.loc[(exo.t == t), "prc_b"].iloc[0], exo.loc[(exo.t == t), "prc_s"].iloc[0]).getKey()
             
             if t < param["T"] - 1:
-                cStateObj = states[cState]
+                cStateObj = states.loc[states.s_key == cState, "s_obj"].values[0]
 
             
 
