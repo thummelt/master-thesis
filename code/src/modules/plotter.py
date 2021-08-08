@@ -10,7 +10,7 @@ def save(plts, transparent: bool = False):
         pl[1].savefig('/usr/app/output/graphics/%s.png' % pl[0], transparent=transparent, bbox_inches='tight',format='png', dpi=600)
 
 
-def formatPlot(g, xlabel, ylabel, title=None,xticks=None,dense=None,legend_t = None, legend_opt = None, legend_loc = "upper left",  yticks = None ):
+def formatPlot(g, xlabel, ylabel, title=None,xticks=None,dense=None,legend_t = None, legend_opt = None, legend_loc = "upper left",  yticks = None, bbox = None, ncol=5 ):
     if xticks is not None:
         g.set(xticks=xticks)
 
@@ -34,10 +34,15 @@ def formatPlot(g, xlabel, ylabel, title=None,xticks=None,dense=None,legend_t = N
         #plt.title(title)
 
     if legend_t is not None:
-        plt.legend(title=legend_t, loc=legend_loc, labels=legend_opt)
+        plt.legend(title=legend_t, loc=legend_loc, labels=legend_opt,
+        bbox_to_anchor=bbox,  fancybox=True, shadow=False, ncol=ncol)
         leg = g.get_legend()
-        for i,v in enumerate(leg.legendHandles):
-            leg.legendHandles[i].set_color(plt.rcParams['axes.prop_cycle'].by_key()['color'][i])
+        if legend_t == "Price Type":
+            for i,v in enumerate(leg.legendHandles):
+                leg.legendHandles[i].set_color(plt.rcParams['axes.prop_cycle'].by_key()['color'][i+3])
+        else:
+            for i,v in enumerate(leg.legendHandles):
+                leg.legendHandles[i].set_color(plt.rcParams['axes.prop_cycle'].by_key()['color'][i])
     
 
 def change_width(ax, new_value) :
